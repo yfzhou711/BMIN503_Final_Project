@@ -1,6 +1,6 @@
 ---
-title: "BMIN503/EPID600 Project Template"
-author: "Your Name"
+title: "BMIN503/EPID600 Final Project"
+author: "Yufan Zhou"
 output: 
   html_document:
     toc: false 
@@ -23,7 +23,7 @@ In the first paragraph, describe the problem addressed, its significance, and so
 
 In the second paragraph, explain why your problem is interdisciplinary, what fields can contribute to its understanding, and incorporate background related to what you learned from meeting with faculty/staff.
 
-I will going to use tumor and T cell publicly available datasets to investigate global t cell exhaustion pathways and t cell specific gene expression signatures.
+I will going to use tumor and T cell publicly available datasets to investigate global t cell exhaustion pathways and t cell specific gene expression signatures.comments
 
 ### Methods
 In the first paragraph, describe the data used and general methodological approach. Subsequently, incorporate full R code necessary to retrieve and clean data, and perform analysis. Be sure to include a description of code so that others (including your future self) can understand what you are doing and why. 
