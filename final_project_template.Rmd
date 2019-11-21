@@ -15,19 +15,14 @@ options(width = 400)
 Use this template to complete your project throughout the course. Your Final Project presentation in class will be based on the contents of this document. Replace the title/name and text below with your own, but keep the headers.
 
 ### Overview
-In this section, give a brief a description of your project and its goal, what data you are using to complete it, and what three faculty/staff in different fields you have spoken to about your project with a brief summary of what you learned from each person. Include a link to your final project GitHub repository.
-
+Uncharacterized signatures of T cell dysfunction could be identified from tumor cohorts and mouse models data sets by testing how gene expression of putative signatures correlate with the specific classical T cell dysfunction biomarkers. Those candidates will be further validated by testing their correlation with CAR-T treatment outcomes from my in-house RNAseq dataset. Identification of reproducible biomarkers that can be applied to predict benefit of CAR-T therapy might be of clinical value.
 
 ### Introduction 
-In the first paragraph, describe the problem addressed, its significance, and some background to motivate the problem.
+Chimeric antigen receptor (CAR) T cells have been genetically engineered to express a receptor that recognizes a specific antigen, have given rise to breakthroughs in treating hematological malignancies. However, their success in treating solid tumors has been limited. T cells that enter solid tumors can stop working due to a phenomenon called T cell dysfunction. T cell dysfunction is a hallmark of many cancers. Identifying and overcoming mechanisms associated with dysfunction in CAR T cells is of vital importance to generating CAR T cells that can proliferate and successfully eliminate tumor cells.
 
-In the second paragraph, explain why your problem is interdisciplinary, what fields can contribute to its understanding, and incorporate background related to what you learned from meeting with faculty/staff.
-
-I will going to use tumor and T cell publicly available datasets to investigate global t cell exhaustion pathways and t cell specific gene expression signatures.comments
-
+Gene expression biomarkers in T cells, such as PDCD1, HACVR2, LAG3, TOX, EOMES, CTLA4, CD8A have been demonstrated in mouse model to predict CAR-T treatment benefits. However, current CAR-T clinical trials have gene expression profiles on only a small number of samples, which are insufficient to train prognostic biomarkers. Alternatively, there are many public tumor profiling data sets from human clinical trials. Some tumors have high level of infiltration by cytotoxic T cells, and these T cells tend to be in a dysfunctional state. Analysis of TCGA data and GEO data might uncover T cell specific dysfunction related genes. Identification of reproducible biomarkers that can be applied to predict benefit of CAR-T therapy might be of clinical value
 ### Methods
-In the first paragraph, describe the data used and general methodological approach. Subsequently, incorporate full R code necessary to retrieve and clean data, and perform analysis. Be sure to include a description of code so that others (including your future self) can understand what you are doing and why. 
-
+Classical T cell specific dysfunction related genes were analyzed using the TCGA pancreatic cancer, prostate cancer and melanoma cohorts. TCGA genomic data were downloaded from the UCSC cancer genome browser project. Gene expression was measured experimentally using the Illumina HiSeq 2000 RNA Sequencing platform and log2(x + 1) transformed. Spearman’s rank correlation test will be used to assess the strength of the relationship between each classical T cell specific dysfunction reference gene with rest of 50,000 genes. Different correlation data sets will be performed overlapping analysis. For GEO mouse genomic datasets, standard RNAseq analysis workflow will be implemented. Overlapped genes from different gene data sets could be served as novel T cell dysfunction signatures. Finally, I will validate those T cell dysfunction signature candidates in my in-house CAR-T treatment patient data set.
 
 ### Results
 Describe your results and include relevant tables, plots, and code/comments used to obtain them. End with a brief conclusion of your findings related to the question you set out to address. You can include references if you'd like, but this is not required.
