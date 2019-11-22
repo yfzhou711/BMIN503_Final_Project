@@ -27,4 +27,197 @@ Classical T cell specific dysfunction related genes were analyzed using the TCGA
 ### Results
 Describe your results and include relevant tables, plots, and code/comments used to obtain them. End with a brief conclusion of your findings related to the question you set out to address. You can include references if you'd like, but this is not required.
 
-example
+```{r}
+
+1. TCGA-PADD (Pancreatic Cancer) Gene Expression Analysis based on overall survial time (OS.time) level.
+Hypothesis: Low survival rate patients samples have more T cell exhaustion signature genes. 
+
+1.1 Data Source
+
+HTSeq counts (n=182) and survival data (n=222) were downloaded from TCGA Pancreatic Cancer cohort.
+
+data download link: https://xenabrowser.net/datapages/?cohort=GDC%20TCGA%20Pancreatic%20Cancer%20(PAAD)&removeHub=https%3A%2F%2Fxena.treehouse.gi.ucsc.edu%3A443
+
+1.2 Data Filter
+
+Survial data will be ranked by overall survial time (os.time), high (75% percentile) and low (25% percentile) os.time samples will be selected for further analysis.
+
+```
+
+
+```{r}
+# load survival datasets
+p.s.data <- read.table(gzfile('./Data/TCGA-PAAD.survival.tsv.gz'), sep="\t", header=TRUE, stringsAsFactors=FALSE)
+
+class(p.s.data$OS.time)
+hi.p.s.data <- p.s.data[p.s.data$OS.time > quantile(p.s.data$OS.time, 0.75), ]
+lo.p.s.data <- p.s.data[p.s.data$OS.time < quantile(p.s.data$OS.time, 0.25), ]
+dim(hi.p.s.data)
+dim(lo.p.s.data)
+
+hi.samples.string.ID <- c("Ensembl_ID",hi.p.s.data$sample)
+
+lo.samples.string.ID <- c("Ensembl_ID",lo.p.s.data$sample)
+
+# load htseq_counts dataset
+p.data <- read.table(gzfile('./Data/TCGA-PAAD.htseq_counts.tsv.gz'), sep="\t", heade=TRUE, stringsAsFactors=FALSE)
+
+library(dplyr)
+library(stringr)
+# p.dataset
+columnname <- str_replace_all(colnames(p.data), "[.]" , "-")
+colnames(p.data) <- columnname
+
+# subset high survivor dataframe
+overlapping.name.h<- Reduce(intersect, list(columnname,hi.samples.string.ID))
+p.data.hi <- p.data[, which(names(p.data) %in% overlapping.name.h)]
+colnames(p.data.hi) <- c("Symbol", sprintf("H%d", 1:45))  
+
+# subset low survivor dataframe
+
+overlapping.name.l <- Reduce(intersect, list(columnname,lo.samples.string.ID))
+p.data.low <- p.data[, which(names(p.data) %in% overlapping.name.l)]
+colnames(p.data.low) <- c("Symbol",sprintf("L%d", 1:44))
+
+# Combine High survivor and Low survivor datasets together
+data.s.h.l <- inner_join(p.data.hi, p.data.low, by = "Symbol")
+
+row.names(data.s.h.l) <- data.s.h.l$Symbol
+data.s.h.l <- data.s.h.l %>% select(-c("Symbol") ) 
+```
+
+```{r}
+1.3 Differential Gene Analysis
+
+library(edgeR)
+library("RColorBrewer")
+library("gplots")
+
+snames <- colnames(data.s.h.l)
+
+factor1 <- substr(snames, 1, 1)
+group <- interaction(factor1)
+
+d0 <- DGEList(data.s.h.l)
+d0 <- calcNormFactors(d0)
+d0$samples
+
+cutoff <- 3
+drop <- which(apply(cpm(d0), 1, max) < cutoff)
+d <- d0[-drop,] 
+dim(d)
+
+# Use plotMDS check simmilarity/dis-similarity between High survival and low survival group.
+plotMDS(d,col = as.numeric(group))
+```
+
+```{r}
+# Fitting linear models in limma
+fit <- lmFit(y, mm)
+head(coef(fit))
+
+contr <- makeContrasts(groupH - groupL, levels = colnames(coef(fit)))
+contr
+
+tmp <- contrasts.fit(fit, contr)
+
+tmp <- eBayes(tmp)
+top.table <- topTable(tmp, sort.by = "P", n = Inf)
+head(top.table, 30)
+
+result.fdr_0.5 <- top.table[which(top.table$adj.P.Val< 0.05), ]
+
+# Preliminary conclusion: sample from High survival group:  "H1","H3","H5","H11","H31","H32","H36","H39" showed seperated distribution from other high suvival samples. There were no statistical differences between High survial group vs Low survival group, which indicated that my grouping criteria was not appropriate. After checking the phenotype datasets, samples "H1","H3","H5","H11","H31","H32","H36","H39" were only pancreatic neuroendocrine tumor samples in total samples (n=222). They are much less common than exocrine tumors, but has better survival rate and therapy outcome My plotMDS results showed neuroendocrine tumor samples had different molecular profiles than exocrine tumor. Neuroendocrine tumor samples could be a less T cell exhasution control for further analysis.
+
+```
+
+
+```{r}
+# Comparing the molecular profiles difference between pancreatic neuroendocrine tumor samples with other low survival rate pancreatic tumor samples.
+
+# High survival group only keep "H1,H3,H5,H11,H31,H32,H36,H39"
+
+selected.samples <- c("H1", "H3", "H5", "H11", "H31", "H32","H36","H39")
+
+D1 <- data.s.h.l[, which(names(data.s.h.l) %in% selected.samples)]
+selected.hi <- c(sprintf("H%d", 1:45))  
+D2 <- data.s.h.l[, -which(names(data.s.h.l) %in% selected.hi)]
+data.selected <- cbind(D1,D2)
+
+```
+
+```{r}
+# Differential Gene Analysis
+
+snames <- colnames(data.selected)
+
+factor1 <- substr(snames, 1, 1)
+group <- interaction(factor1)
+
+d0 <- DGEList(data.selected)
+d0 <- calcNormFactors(d0)
+d0$samples
+
+cutoff <- 3
+drop <- which(apply(cpm(d0), 1, max) < cutoff)
+d <- d0[-drop,] 
+dim(d)
+
+plotMDS(d, col = as.numeric(group))
+
+mm <- model.matrix(~0 + group)
+y <- voom(d, mm, plot = T)
+
+# Fitting linear models in limma
+fit <- lmFit(y, mm)
+head(coef(fit))
+
+contr <- makeContrasts(groupH - groupL, levels = colnames(coef(fit)))
+contr
+
+tmp <- contrasts.fit(fit, contr)
+
+tmp <- eBayes(tmp)
+top.table <- topTable(tmp, sort.by = "P", n = Inf)
+head(top.table, 30)
+
+result.selected.fdr_0.5 <- top.table[which(top.table$adj.P.Val< 0.05), ]
+```
+
+
+```{r}
+## Annotation
+
+# remove decimal of Ensembl_ID
+
+data.modified <- sapply(strsplit(row.names(result.selected.fdr_0.5),"\\."), function(x) x[1])
+data.new <- cbind(data.modified, result.selected.fdr_0.5)
+data.new <- data.new[, -2]
+head(data.new)
+dim(data.new)
+
+#rename colume 1
+library(dplyr)
+result.anno <- data.new %>% rename(ensembl_gene_id = data.modified)
+
+# map annotation
+library('biomaRt')
+library("curl")
+mart <- useDataset("hsapiens_gene_ensembl", useMart("ensembl"))
+listAttributes(ensembl)
+gene <-getBM(attributes=c("ensembl_gene_id","external_gene_name"), values =result.anno$ensembl_gene_id, mart = mart)
+id <- match(result.anno$ensembl_gene_id , gene$ensembl_gene_id)
+result.anno$Symbol <- gene$external_gene_name[id]
+head(result.anno)
+
+
+# Remove "NA" value in Symbol
+result.anno <- result.anno[complete.cases(result.anno[,8]),]
+dim(result.anno)
+
+row.names(result.anno) <- result.anno$ensembl_gene_id
+result.anno <- result.anno[, -1]
+
+write.csv(result.anno, file = "Selected_Hi__vs_L_.0.05.csv")
+```
+
