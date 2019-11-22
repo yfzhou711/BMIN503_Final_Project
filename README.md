@@ -8,7 +8,7 @@ Author: Yufan Zhou
 
 **Description of files in repository**
   
-  overlapping_results folder
+overlapping_results folder
 
 data folder
 
