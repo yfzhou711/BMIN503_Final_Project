@@ -55,7 +55,6 @@ data_modified <- sapply(strsplit(data$Ensembl_ID,"\\."), function(x) x[1])
 data_new <- cbind(data_modified, data)
 data_new <- data_new[, -2]
 head(data_new)
-dim(data_new)
 
 # rename colume 1
 library(dplyr)
@@ -296,7 +295,7 @@ venn.plot <- venn.diagram(
 		EOMES = EOMES,
 		TBX21 =TBX21
 		),
-filename = "Venn_Tcell_Exhaustion_8genes.tiff",
+filename = "Venn_Tcell_Dysfuncion_8genes.tiff",
 	col = "transparent",
 	fill = 1:5,
 	alpha = 0.50,
