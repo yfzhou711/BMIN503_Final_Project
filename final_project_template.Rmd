@@ -577,6 +577,15 @@ ggplot(data = data.scatter.tnfrsf1b.pdcd1, aes(y = TNFRSF1B, x = PDCD1)) +
   geom_point() +
   geom_smooth(method = "lm", se = FALSE)
 res <- cor.test(data.scatter.tnfrsf1b.pdcd1$TNFRSF1B, data.scatter.tnfrsf1b.pdcd1$PDCD1, method = "spearman")
+
+
+sp <- ggscatter(data.scatter.tnfrsf1b.pdcd1, x = "PDCD1", y = "TNFRSF1B",
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), 
+   conf.int = TRUE # Add confidence interval
+   )
+# Add correlation coefficient
+sp + stat_cor(method = "spearman", label.x = 0, label.y = 8)
 ```
 
 ```{r}
