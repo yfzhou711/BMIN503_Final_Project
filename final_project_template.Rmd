@@ -591,6 +591,57 @@ sp + stat_cor(method = "spearman", label.x = 0, label.y = 8)
 ```{r}
 1.6 Survival analysis
 
+# Load transformed RSEM normalized count
+
+data.rsem <- read.table(gzfile("HiSeqV2.PADD.RSEM.normalized.gz"), sep="\t", header=TRUE, stringsAsFactors=FALSE)
+columnname.r <- str_replace_all(colnames(data.rsem), "[.]" , "-")
+colnames(data.rsem) <- columnname.r
+
+# load survival datasets
+data.survival <- read.table(gzfile("TCGA-PAAD.survival.tsv.gz"), sep="\t", header=TRUE, stringsAsFactors=FALSE)
+
+# Clean survival dataset
+data.survival.1 <- data.survival[, -3]
+data.survival.1$OS.time <- round((data.survival.1$OS.time)/30)
+
+# Extract T cell dysfunction genes. Data comes from above overlapping analysis
+data.extract.r <- data.rsem
+data.extract.r <- data.rsem[data.rsem$sample %in% p.overlapping_0.5, ]
+row.names(data.extract.r) <- data.extract.r$sample
+data.extract.r <- data.extract.r[, -1]
+data.extract.r.t <- data.frame(t(data.extract.r))
+sample.name <- row.names(data.extract.r.t)
+data.extract.r.t <- mutate(sample = as.character(sample.name), data.extract.r.t)
+
+#Combine survival and extracted rsem gene datasets together
+
+data.survival.1$sample <- substr(data.survival.1$sample, 1,15)
+data.combine.r <- inner_join(data.survival.1,data.extract.r.t,by = "sample")
+dim(data.combine.r)
+
+
+library(tidyverse)
+# survival analysis
+Data.t.r <- scale(data.combine.r$TNFRSF1B,center = TRUE, scale = TRUE) # z score scaling
+test.data.r <- data.frame(data.combine.r[,1:3], Data.t.r)
+colnames(test.data.r) <- c('sample', 'OS', 'OS.time', 'TNFRSF1B')
+test.data.r$TNFRSF1B <- ifelse(test.data.r$TNFRSF1B> 1, 'High','Low')
+
+library(survival)
+library(survminer)
+res.cox <- coxph(Surv(OS.time, OS) ~ TNFRSF1B, data = text.data)
+pvalue <- summary(res.cox)$logtest["pvalue"]
+
+
+ggsurvplot(survfit(Surv(OS.time, OS) ~ TNFRSF1B,
+                   data = test.data.r),
+           data = test.data.r,
+           pval = TRUE,
+           xlab = 'Month',
+           break.time.by = 20,
+           risk.table.y.text.col = TRUE,
+           risk.table.y.text = FALSE)
+
 
 
 ```
