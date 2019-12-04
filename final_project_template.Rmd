@@ -633,5 +633,5 @@ ggsurvplot(survfit(Surv(OS.time, OS) ~ TNFRSF1B,
 
 ### Conclusion
 
-I identified 268 T cell dysfunction related genes. 
+In summary, I explored the genomic and phenotypic pancreatic tumor datasets to identify 268 T cell dysfunction related genes. Most of genes were highly representative in other published T cell dysfuntion models, providing evidence that T cell biomarker-driven approach to identify correlation genes was available. Gene Ontology and Pathway analysis showed most of T cell dysfunction related genes were enriched in T cell activation, differentiation and proliferation module, which were consistant with our current knowledge. That aslo suggested when we knocked out T cell dysfunction genes to improve the T cell persistance, T cell initially growth might be impaired at the same time. More further validations need to be implemented by dry lab. Overall, this biomarker-driven approach had the ability to indentify potential biomarker related genes as well as might guide translational research to improve the CAR T cell performance. 
 
