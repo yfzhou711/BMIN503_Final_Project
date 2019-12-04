@@ -30,22 +30,21 @@ Describe your results and include relevant tables, plots, and code/comments used
 
 ```{r}
 
-1. Intergrative correlation analysis of discovering potential T cell dysfunction realted genes from TCGA Pancreatic Cancer cohort
+### Intergrative correlation analysis of discovering potential T cell dysfunction realted genes from TCGA Pancreatic Cancer cohort
 
-1.1 Data Source
+### Data Source
 
-(1) Datasets
+# Datasets
 Normalized fkpm counts (n=182) and survival data (n=222) were downloaded from GDC TCGA Pancreatic Cancer cohort.
 
-data download link: https://xenabrowser.net/datapages/?cohort=GDC%20TCGA%20Pancreatic%20Cancer%20(PAAD)&removeHub=https%3A%2F%2Fxena.treehouse.gi.ucsc.edu%3A443
+data download link: "https://xenabrowser.net/datapages/?cohort=GDC%20TCGA%20Pancreatic%20Cancer%20(PAAD)&removeHub=https%3A%2F%2Fxena.treehouse.gi.ucsc.edu%3A443"
 
-(2) Biomarkers
+# Biomarkers
 
-T cell exhaustion biomarkers: CD8A, HAVCR2, LAG3, PDCD1, EOMES, TBX21,CTLA4
-T cell memory stage biomarkers: PTPRC(CD45RA), SELL, STAT3, IL17R(CD47), BCL2
+T cell dysfunction biomarkers: CD8A, HAVCR2, LAG3, PDCD1, EOMES, TBX21, CTLA4
 
 
-1.2 Data Clean
+### Data Clean
 
 # load datasets
 data <- read.table(gzfile("./Data/TCGA-PAAD.htseq_fpkm.tsv.gz"), sep="\t", header=TRUE, stringsAsFactors=FALSE)
@@ -70,7 +69,7 @@ id <- match(data2$ensembl_gene_id , gene$ensembl_gene_id)
 data2$Symbol <- gene$external_gene_name[id]
 head(data2)
 
-#  Remove "NA" value in Symbol
+# Remove "NA" value in Symbol
 data2 <- data2[complete.cases(data2[,184]),]
 dim(data2)
 
@@ -84,171 +83,37 @@ data.clean[complete.cases(data.clean), ]
 
 ```{r}
 
-# Test
-x1 <- data.frame(t(subset(data.clean, Symbol == "PDCD1")[-1]))
-colnames(x1) <- subset(data.clean, Symbol == "PDCD1")[,1]
+### T cell dysfunction biomarkers overlappping correlation analysis
 
-x2 <- data.frame(t(subset(data.clean, Symbol == "RNF17")[-1]))
-colnames(x2) <- subset(data.clean, Symbol == "RNF17")[,1]
+T cell dysfunction biomarkers: HAVCR2, CD8A, LAG3, PDCD1, EOMES, TBX21, CTLA4
 
-res_ID2_ID3 <- cor.test(x1$PDCD1, x2$RNF17, method = "spearman", exact=F)
+# Used HAVCR2 as example, "gene" could be replaced by above biomarkers respectively
+
+# set an empty dataframe
+result_gene <- data.frame((matrix(nrow = 56553, ncol = 2))) # gene is HAVCR2
+colnames(result_gene) <- c("variable", "R")
+
+# for loop to retreive R value
+
+x <- data.frame(t(subset(data.clean, Symbol == "gene")[-1]))  # gene is HAVCR2
+colnames(x) <- subset(data.clean, Symbol == "gene")[,1]
+
+for (i in 1:56553){
+  y = data.frame(t(subset(data.clean[i,])[-1]))
+  colnames(y) <- subset(data.clean[i,])[,1]
+  res_gene <- cor.test(x$gene, y[1:182,1], method = "spearman", exact=F) # gerne is HAVCR2
+  result_gene[i,2] <- res_gene$estimate
+  result_gene[i,1] <- as.character(data.clean[i,1])
+}
+result_gene # gene is HAVCR2
+
 ```
 
 ```{r}
+### Overlapping Analysis
 
-1.3 T cell exhaustion biomarkers overlappping correlation analysis
+Used R >= 0.5 as cut-off
 
-# HAVCR2
-
-# set an empty dataframe
-result_havcr2 <- data.frame((matrix(nrow = 56553, ncol = 2)))
-colnames(result_havcr2) <- c("variable", "R")
-
-# for loop to retreive R value
-
-x <- data.frame(t(subset(data.clean, Symbol == "HAVCR2")[-1]))
-colnames(x) <- subset(data.clean, Symbol == "HAVCR2")[,1]
-
-for (i in 1:56553){
-  y = data.frame(t(subset(data.clean[i,])[-1]))
-  colnames(y) <- subset(data.clean[i,])[,1]
-  res_havcr2 <- cor.test(x$HAVCR2, y[1:182,1], method = "spearman", exact=F)
-  result_havcr2[i,2] <- res_havcr2$estimate
-  result_havcr2[i,1] <- as.character(data.clean[i,1])
-}
-result_havcr2
-
-
-# PDCD1
-
-# set an empty dataframe
-result_pdcd1 <- data.frame((matrix(nrow = 56553, ncol = 2)))
-colnames(result_pdcd1) <- c("variable", "R")
-
-# for loop to retreive R value
-
-x <- data.frame(t(subset(data.clean, Symbol == "PDCD1")[-1]))
-colnames(x) <- subset(data.clean, Symbol == "PDCD1")[,1]
-
-for (i in 1:56553){
-  y = data.frame(t(subset(data.clean[i,])[-1]))
-  colnames(y) <- subset(data.clean[i,])[,1]
-  res_pdcd1 <- cor.test(x$PDCD1, y[1:182,1], method = "spearman", exact=F)
-  result_pdcd1[i,2] <- res_pdcd1$estimate
-  result_pdcd1[i,1] <- as.character(data.clean[i,1])
-}
-result_pdcd1
-
-# LAG3
-
-# set an empty dataframe
-result_lag3 <- data.frame((matrix(nrow = 56553, ncol = 2)))
-colnames(result_lag3) <- c("variable", "R")
-
-# for loop to retreive R value
-
-x <- data.frame(t(subset(data.clean, Symbol == "LAG3")[-1]))
-colnames(x) <- subset(data.clean, Symbol == "LAG3")[,1]
-
-for (i in 1:56553){
-  y = data.frame(t(subset(data.clean[i,])[-1]))
-  colnames(y) <- subset(data.clean[i,])[,1]
-  res_lag3 <- cor.test(x$LAG3, y[1:182,1], method = "spearman", exact=F)
-  result_lag3[i,2] <- res_lag3$estimate
-  result_lag3[i,1] <- as.character(data.clean[i,1])
-}
-result_lag3
-
-# TBX21
-
-# set an empty dataframe
-result_tbx21 <- data.frame((matrix(nrow = 56553, ncol = 2)))
-colnames(result_tbx21) <- c("variable", "R")
-
-# for loop to retreive R value
-
-x <- data.frame(t(subset(data.clean, Symbol == "TBX21")[-1]))
-colnames(x) <- subset(data.clean, Symbol == "TBX21")[,1]
-
-for (i in 1:56553){
-  y = data.frame(t(subset(data.clean[i,])[-1]))
-  colnames(y) <- subset(data.clean[i,])[,1]
-  res_tbx21 <- cor.test(x$TBX21, y[1:182,1], method = "spearman", exact=F)
-  result_tbx21[i,2] <- res_tbx21$estimate
-  result_tbx21[i,1] <- as.character(data.clean[i,1])
-}
-result_tbx21
-
-
-# EOMES
-
-# set an empty dataframe
-result_eomes <- data.frame((matrix(nrow = 56553, ncol = 2)))
-colnames(result_eomes) <- c("variable", "R")
-
-# for loop to retreive R value
-
-x <- data.frame(t(subset(data.clean, Symbol == "EOMES")[-1]))
-colnames(x) <- subset(data.clean, Symbol == "EOMES")[,1]
-
-for (i in 1:56553){
-  y = data.frame(t(subset(data.clean[i,])[-1]))
-  colnames(y) <- subset(data.clean[i,])[,1]
-  res_eomes <- cor.test(x$EOMES, y[1:182,1], method = "spearman", exact=F)
-  result_eomes[i,2] <- res_eomes$estimate
-  result_eomes[i,1] <- as.character(data.clean[i,1])
-}
-result_eomes
-
-# CTLA4
-
-# set an empty dataframe
-result_ctla4 <- data.frame((matrix(nrow = 56553, ncol = 2)))
-colnames(result_ctla4) <- c("variable", "R")
-
-# for loop to retreive R value
-
-x <- data.frame(t(subset(data.clean, Symbol == "CTLA4")[-1]))
-colnames(x) <- subset(data.clean, Symbol == "CTLA4")[,1]
-
-for (i in 1:56553){
-  y = data.frame(t(subset(data.clean[i,])[-1]))
-  colnames(y) <- subset(data.clean[i,])[,1]
-  res_ctla4 <- cor.test(x$CTLA4, y[1:182,1], method = "spearman", exact=F)
-  result_ctla4[i,2] <- res_ctla4$estimate
-  result_ctla4[i,1] <- as.character(data.clean[i,1])
-}
-result_ctla4
-
-
-# CD8A
-
-# set an empty dataframe
-result_cd8a <- data.frame((matrix(nrow = 56553, ncol = 2)))
-colnames(result_cd8a) <- c("variable", "R")
-
-# for loop to retreive R value
-
-x <- data.frame(t(subset(data.clean, Symbol == "CD8A")[-1]))
-colnames(x) <- subset(data.clean, Symbol == "CD8A")[,1]
-
-for (i in 1:56553){
-  y = data.frame(t(subset(data.clean[i,])[-1]))
-  colnames(y) <- subset(data.clean[i,])[,1]
-  res_cd8a <- cor.test(x$CD8A, y[1:182,1], method = "spearman", exact=F)
-  result_cd8a[i,2] <- res_cd8a$estimate
-  result_cd8a[i,1] <- as.character(data.clean[i,1])
-}
-result_cd8a
-
-```
-
-
-
-```{r}
-1.3.1 Overlapping Analysis
-
-## R >= 0.5
 # HAVCR2
 havcr2_0.5 <- subset(result_havcr2, R >=0.5)
 gene_list_havcr2_0.5 <- havcr2_0.5$variable
@@ -277,9 +142,10 @@ gene_list_tbx21_0.5 <- tbx21_0.5$variable
 ctla4_0.5 <- subset(result_ctla4, R >=0.5)
 gene_list_ctla4_0.5 <- ctla4_0.5$variable
 
-## ovelapping results
+## Ovelapping results
 p.e.overlapping_0.5 <- Reduce(intersect, list(gene_list_havcr2_0.5,gene_list_lag3_0.5,gene_list_cd8a_0.5,gene_list_eomes_0.5, gene_list_tbx21_0.5))
 
+# VennDiagram 
 library("VennDiagram")
 HAVCR2 <- sample(gene_list_havcr2_0.5, replace = FALSE)
 LAG3 <- sample(gene_list_lag3_0.5, replace = FALSE)
@@ -307,414 +173,13 @@ filename = "Venn_Tcell_Dysfuncion_8genes.tiff",
 	cat.fontfamily = "serif",
 	margin = 0.1
 	);
-```
-
-
-
-```{r}
-1.4 T cell memory stage biomarkers overlappping correlation analysis
-
-# PTPRC
-
-# set an empty dataframe
-result_ptprc <- data.frame((matrix(nrow = 56553, ncol = 2)))
-colnames(result_ptprc) <- c("variable", "R")
-
-# for loop to retreive R value
-
-x <- data.frame(t(subset(data.clean, Symbol == "PTPRC")[-1]))
-colnames(x) <- subset(data.clean, Symbol == "PTPRC")[,1]
-
-for (i in 1:56553){
-  y = data.frame(t(subset(data.clean[i,])[-1]))
-  colnames(y) <- subset(data.clean[i,])[,1]
-  res_ptprc <- cor.test(x$PTPRC, y[1:182,1], method = "spearman", exact=F)
-  result_ptprc[i,2] <- res_ptprc$estimate
-  result_ptprc[i,1] <- as.character(data.clean[i,1])
-}
-result_ptprc
-
-# SELL
-
-# set an empty dataframe
-result_sell <- data.frame((matrix(nrow = 56553, ncol = 2)))
-colnames(result_sell) <- c("variable", "R")
-
-# for loop to retreive R value
-
-x <- data.frame(t(subset(data.clean, Symbol == "SELL")[-1]))
-colnames(x) <- subset(data.clean, Symbol == "SELL")[,1]
-
-for (i in 1:56553){
-  y = data.frame(t(subset(data.clean[i,])[-1]))
-  colnames(y) <- subset(data.clean[i,])[,1]
-  res_sell <- cor.test(x$SELL, y[1:182,1], method = "spearman", exact=F)
-  result_sell[i,2] <- res_sell$estimate
-  result_sell[i,1] <- as.character(data.clean[i,1])
-}
-result_sell
-
-# STAT3
-
-# set an empty dataframe
-result_stat3 <- data.frame((matrix(nrow = 56553, ncol = 2)))
-colnames(result_stat3) <- c("variable", "R")
-
-
-# for loop to retreive R value
-
-x <- data.frame(t(subset(data.clean, Symbol == "STAT3")[-1]))
-colnames(x) <- subset(data.clean, Symbol == "STAT3")[,1]
-
-for (i in 1:56553){
-  y = data.frame(t(subset(data.clean[i,])[-1]))
-  colnames(y) <- subset(data.clean[i,])[,1]
-  res_stat3 <- cor.test(x$STAT3, y[1:182,1], method = "spearman", exact=F)
-  result_stat3[i,2] <- res_stat3$estimate
-  result_stat3[i,1] <- as.character(data.clean[i,1])
-}
-result_stat3
-
-
-# BCL2
-
-# set an empty dataframe
-result_bcl2<- data.frame((matrix(nrow = 56553, ncol = 2)))
-colnames(result_bcl2) <- c("variable", "R")
-
-# for loop to retreive R value
-
-x <- data.frame(t(subset(data.clean, Symbol == "BCL2")[-1]))
-colnames(x) <- subset(data.clean, Symbol == "BCL2")[,1]
-
-for (i in 1:56553){
-  y = data.frame(t(subset(data.clean[i,])[-1]))
-  colnames(y) <- subset(data.clean[i,])[,1]
-  res_bcl2 <- cor.test(x$BCL2, y[1:182,1], method = "spearman", exact=F)
-  result_bcl2[i,2] <- res_bcl2$estimate
-  result_bcl2[i,1] <- as.character(data.clean[i,1])
-}
-result_bcl2
-
-
-# IL7R (CD127)
-
-# set an empty dataframe
-result_il7r<- data.frame((matrix(nrow = 56553, ncol = 2)))
-colnames(result_il7r) <- c("variable", "R")
-
-# for loop to retreive R value
-
-x <- data.frame(t(subset(data.clean, Symbol == "IL7R")[-1]))
-colnames(x) <- subset(data.clean, Symbol == "IL7R")[,1]
-
-for (i in 1:56553){
-  y = data.frame(t(subset(data.clean[i,])[-1]))
-  colnames(y) <- subset(data.clean[i,])[,1]
-  res_il7r <- cor.test(x$IL7R, y[1:182,1], method = "spearman", exact=F)
-  result_il7r[i,2] <- res_il7r$estimate
-  result_il7r[i,1] <- as.character(data.clean[i,1])
-}
-result_il7r
 
 ```
 
 
 ```{r}
-1.3.1 Overlapping Analysis
-
-# R >= 0.5
-
-# PTPRC
-ptprc_0.5 <- subset(result_ptprc, R >=0.5)
-gene_list_ptprc_0.5 <- ptprc_0.5$variable
-
-# SELL
-sell_0.5 <- subset(result_sell, R >=0.5)
-gene_list_sell_0.5 <- sell_0.5$variable
-
-# STAT3
-stat3_0.5 <- subset(result_stat3, R >=0.5)
-gene_list_stat3_0.5 <- stat3_0.5$variable
-
-# BCL2
-bcl2_0.5 <- subset(result_bcl2, R >=0.5)
-gene_list_bcl2_0.5 <- bcl2_0.5$variable
-
-# IL7R
-il7r_0.5 <- subset(result_il7r, R >=0.5)
-gene_list_il7r_0.5 <- il7r_0.5$variable
-
-
-## ovelapping results
-p.m.overlapping_0.5 <- Reduce(intersect, list(gene_list_ptprc_0.5,gene_list_sell_0.5, gene_list_stat3_0.5, gene_list_bcl2_0.5, gene_list_il7r_0.5))
-
-library("VennDiagram")
-PTPRC <- sample(gene_list_ptprc_0.5, replace = FALSE)
-SELL <- sample(gene_list_sell_0.5, replace = FALSE)
-STAT3 <- sample(gene_list_stat3_0.5, replace = FALSE)
-BCL2 <- sample(gene_list_bcl2_0.5, replace = FALSE)
-IL7R <- sample(gene_list_il7r_0.5, replace = FALSE)
-
-venn.plot <- venn.diagram(
-	x = list(
-		PTPRC = PTPRC,
-		SELL = SELL, 
-		STAT3 = STAT3,
-		BCL2 =BCL2,
-		IL7R = IL7R
-		),
-filename = "Venn_Tcell_Memory_5genes.tiff",
-	col = "transparent",
-	fill = 2:6,
-	alpha = 0.50,
-	cex = 1,
-	fontfamily = "serif",
-	fontface = "bold",
-	cat.col = rep("black", 5),
-	cat.cex = 1.3,
-	cat.fontfamily = "serif",
-	margin = 0.1
-	);
-```
-
-
-```{r}
-# GO and KEGG analysis
-library(DOSE)
-library(org.Hs.eg.db)
-library(topGO)
-library(clusterProfiler)
-library(pathview)
-
-
-x <- p.e.overlapping_0.5
-test = bitr(x, 
-fromType="SYMBOL", 
-toType="ENTREZID",  
-OrgDb="org.Hs.eg.db") 
-
-ggo <- groupGO(gene = test$ENTREZID, OrgDb = org.Hs.eg.db, ont = "CC",level = 3,readable = TRUE)
-
-data(geneList, package="DOSE") #
-gene <- names(geneList)[abs(geneList) > 2]
-gene.df <- bitr(gene, fromType = "ENTREZID", toType = c("ENSEMBL", "SYMBOL"), OrgDb = org.Hs.eg.db)
-head(gene.df,2)
-
-
-ego_ALL <- enrichGO(gene = test$ENTREZID, 
-                universe = names(geneList),
-                OrgDb = org.Hs.eg.db, 
-                ont = "ALL", 
-                pAdjustMethod = "BH",
-                pvalueCutoff = 1, 
-                qvalueCutoff = 1,
-				readable = TRUE)
-head(ego_ALL,2)
-
-# GO-MF
-ego_MF <- enrichGO(gene = test$ENTREZID, universe = names(geneList),OrgDb = org.Hs.eg.db,ont = "MF", pAdjustMethod = "BH",pvalueCutoff = 1,qvalueCutoff = 1,readable = FALSE)
-ego_MF1 <- setReadable(ego_MF, OrgDb = org.Hs.eg.db)
-
-barplot(ego_MF, showCategory=20,title="EnrichmentGO_MF")
-
-
-# GO-BP
-ego_BP <- enrichGO(gene = test$ENTREZID, universe = names(geneList),OrgDb = org.Hs.eg.db,ont = "BP", pAdjustMethod = "BH",pvalueCutoff = 1,qvalueCutoff = 1,readable = FALSE)
-ego_BP1 <- setReadable(ego_BP, OrgDb = org.Hs.eg.db)
-
-barplot(ego_BP, showCategory=20,title="EnrichmentGO_BP")
-
-
-# GO-CC
-ego_CC <- enrichGO(gene = test$ENTREZID, universe = names(geneList),OrgDb = org.Hs.eg.db,ont = "CC", pAdjustMethod = "BH",pvalueCutoff = 1,qvalueCutoff = 1,readable = FALSE)
-ego_CC1 <- setReadable(ego_CC, OrgDb = org.Hs.eg.db)
-
-barplot(ego_CC, showCategory=20,title="EnrichmentGO_CC")
-
-
-
-# KEGG Analysis
-kk <- enrichKEGG(gene = test$ENTREZID,
-                 organism = 'hsa', 
-                 pvalueCutoff = 1)
-head(kk)
-
-dotplot(kk,title="Enrichment KEGG_dot")
-
-
-hsa04659 <- pathview(gene.data = geneList,
-
-pathway.id = "hsa04659", #
-
-species = "hsa",
-
-limit = list(gene=max(abs(geneList)), cpd=1))
-```
-
-```{r}
-
-1.5 Correlation plot
-
-# Extract selected T cell dysfunction genes. Data comes from above overlapping analysis
-Biomarkers: CD8A, HAVCR2, LAG3, PDCD1, EOMES, TBX21,CTLA4,
-Candidate: TNFRSF1B
-
-
-selected.gene <- c("CD8A", "HAVCR2", "LAG3", "PDCD1", "EOMES", "TBX21", "CTLA4", "ENTPD1", "CD244", "PRDM1", "TOX", "NR4A1","TNFRSF1B")
-data.extract <- data.clean[data.clean$Symbol %in% selected.gene, ]
-row.names(data.extract) <- data.extract$Symbol
-data.extract <- data.extract[, -1]
-data.extract.t <- data.frame(t(data.extract))
-sample.name <- row.names(data.extract.t)
-
-
-TNFRSF1B.hi <- data.extract.t[data.extract.t$TNFRSF1B >= quantile(data.extract.t$TNFRSF1B, 0.75), ]
-TNFRSF1B.hi.name <- sprintf("TNFRSF1B_High%d", 1:46)
-row.names(TNFRSF1B.hi) <- TNFRSF1B.hi.name
-TNFRSF1B.hi.t <- data.frame(t(TNFRSF1B.hi))
-
-TNFRSF1B.low <- data.extract.t[data.extract.t$TNFRSF1B <= quantile(data.extract.t$TNFRSF1B, 0.25), ]
-TNFRSF1B.low.name <- sprintf("TNFRSF1B_Low%d", 1:46)
-row.names(TNFRSF1B.low) <- TNFRSF1B.low.name
-TNFRSF1B.low.t <- data.frame(t(TNFRSF1B.low))
-
-
-TNFRSF1B.hi.low.merge <- merge(TNFRSF1B.hi.t, TNFRSF1B.low.t, by=0, all=TRUE)
-row.names(TNFRSF1B.hi.low.merge) <- TNFRSF1B.hi.low.merge$Row.names
-TNFRSF1B.hi.low.merge <- TNFRSF1B.hi.low.merge[, -1]
-datawithoutTNFRSF1B <- TNFRSF1B.hi.low.merge[-12, ]
-
-
-# Heatmap 
-library(pheatmap)
-library(RColorBrewer)
-library(gplots)
-
-mymat <- datawithoutTNFRSF1B
-colnames(mymat) <- c(rep("High", 46), rep("Low", 46))
-
-mat_breaks <- seq(min(mymat), max(mymat), length.out = 10)
-
-pheatmap(
-  mat               = mymat,
-  color             = viridis(length(mat_breaks) - 1),
-  breaks            = mat_breaks,
-  border_color      = NA,
-  show_colnames     = FALSE,
-  show_rownames     = TRUE,
-  cluster_cols      = FALSE,
-  drop_levels       = TRUE,
-  fontsize          = 14,
-  main              = "TNFRSF1B"
-)
-
-
-
-pheatmap(mymat, cluster_cols = F, cluster_rows = F, breaks= mat_breaks)
-
-m <- as.matrix(TNFRSF1B.hi.low.merge)
-heatmap.2(m, col=bluered(100), dendrogram='none', Rowv=FALSE, Colv=FALSE,trace='none', scale = "none", breaks = seq(0, 6.5, length.out = 101))
-
-
-
-my_palette <- colorRampPalette(c("red", "black", "green"))(n = 299)
-
-heatmap.2(m, col=my_palette, 
-    breaks=c(seq(-3,-2,length=100),seq(-2,0.5,length=100),seq(0.5,6,length=100)), density.info="none", trace="none", 
-        dendrogram=c("row"), symm=F,symkey=F,symbreaks=T, scale="none")
-```
-
-
-
-```{r}
-# Scatter plot
-library(tidyverse)
-data.extract.scatter <- data.clean[data.clean$Symbol %in% p.e.overlapping_0.5, ]
-row.names(data.extract.scatter) <- data.extract.scatter$Symbol
-data.extract.scatter <- data.extract.scatter[, -1]
-data.extract.scatter.t <- data.frame(t(data.extract.scatter))
-sample.name <- row.names(data.extract.scatter.t)
-data.scatter.tnfrsf1b.pdcd1 <- data.extract.scatter.t %>% select(TNFRSF1B, PDCD1)
-
-ggplot(data = data.scatter.tnfrsf1b.pdcd1, aes(y = TNFRSF1B, x = PDCD1)) +
-  geom_point() +
-  geom_smooth(method = "lm", se = FALSE)
-res <- cor.test(data.scatter.tnfrsf1b.pdcd1$TNFRSF1B, data.scatter.tnfrsf1b.pdcd1$PDCD1, method = "spearman")
-
-
-sp <- ggscatter(data.scatter.tnfrsf1b.pdcd1, x = "PDCD1", y = "TNFRSF1B",
-   add = "reg.line",  # Add regressin line
-   add.params = list(color = "blue", fill = "lightgray"), 
-   conf.int = TRUE # Add confidence interval
-   )
-# Add correlation coefficient
-sp + stat_cor(method = "spearman", label.x = 0, label.y = 8)
-```
-
-```{r}
-1.7 Survival analysis
-
-# Load transformed RSEM normalized count
-
-data.rsem <- read.table(gzfile("HiSeqV2.PADD.RSEM.normalized.gz"), sep="\t", header=TRUE, stringsAsFactors=FALSE)
-columnname.r <- str_replace_all(colnames(data.rsem), "[.]" , "-")
-colnames(data.rsem) <- columnname.r
-
-# load survival datasets
-data.survival <- read.table(gzfile("TCGA-PAAD.survival.tsv.gz"), sep="\t", header=TRUE, stringsAsFactors=FALSE)
-
-# Clean survival dataset
-data.survival.1 <- data.survival[, -3]
-data.survival.1$OS.time <- round((data.survival.1$OS.time)/30)
-
-# Extract T cell dysfunction genes. Data comes from above overlapping analysis
-data.extract.r <- data.rsem
-data.extract.r <- data.rsem[data.rsem$sample %in% p.overlapping_0.5, ]
-row.names(data.extract.r) <- data.extract.r$sample
-data.extract.r <- data.extract.r[, -1]
-data.extract.r.t <- data.frame(t(data.extract.r))
-sample.name <- row.names(data.extract.r.t)
-data.extract.r.t <- mutate(sample = as.character(sample.name), data.extract.r.t)
-
-#Combine survival and extracted rsem gene datasets together
-
-data.survival.1$sample <- substr(data.survival.1$sample, 1,15)
-data.combine.r <- inner_join(data.survival.1,data.extract.r.t,by = "sample")
-dim(data.combine.r)
-
-
-library(tidyverse)
-# survival analysis
-Data.t.r <- scale(data.combine.r$TNFRSF1B,center = TRUE, scale = TRUE) # z score scaling
-test.data.r <- data.frame(data.combine.r[,1:3], Data.t.r)
-colnames(test.data.r) <- c('sample', 'OS', 'OS.time', 'TNFRSF1B')
-test.data.r$TNFRSF1B <- ifelse(test.data.r$TNFRSF1B> 1, 'High','Low')
-
-library(survival)
-library(survminer)
-res.cox <- coxph(Surv(OS.time, OS) ~ TNFRSF1B, data = text.data)
-pvalue <- summary(res.cox)$logtest["pvalue"]
-
-
-ggsurvplot(survfit(Surv(OS.time, OS) ~ TNFRSF1B,
-                   data = test.data.r),
-           data = test.data.r,
-           pval = TRUE,
-           xlab = 'Month',
-           break.time.by = 20,
-           risk.table.y.text.col = TRUE,
-           risk.table.y.text = FALSE)
-
-
-
-```
-
-
-```{r}
-## 
-Survial data will be ranked by overall survival time (os.time), high (75% percentile) and low (25% percentile) os.time samples will be selected for further analysis.
-
+### Differential gene analysis
+Samples were ranked by overall survival time (os.time), high (75% percentile) and low (25% percentile) os.time samples were selected for further analysis
 
 # load survival datasets
 p.s.data <- read.table(gzfile('./Data/TCGA-PAAD.survival.tsv.gz'), sep="\t", header=TRUE, stringsAsFactors=FALSE)
@@ -722,11 +187,8 @@ p.s.data <- read.table(gzfile('./Data/TCGA-PAAD.survival.tsv.gz'), sep="\t", hea
 class(p.s.data$OS.time)
 hi.p.s.data <- p.s.data[p.s.data$OS.time > quantile(p.s.data$OS.time, 0.75), ]
 lo.p.s.data <- p.s.data[p.s.data$OS.time < quantile(p.s.data$OS.time, 0.25), ]
-dim(hi.p.s.data)
-dim(lo.p.s.data)
 
 hi.samples.string.ID <- c("Ensembl_ID",hi.p.s.data$sample)
-
 lo.samples.string.ID <- c("Ensembl_ID",lo.p.s.data$sample)
 
 # load gene expression dataset
@@ -734,34 +196,33 @@ p.data <- read.table(gzfile('./Data/HiSeqV2.PADD.RSEM.normalized.gz'), sep="\t",
 
 library(dplyr)
 library(stringr)
+
 # p.dataset
 columnname <- str_replace_all(colnames(p.data), "[.]" , "-")
 colnames(p.data) <- columnname
 
-# subset high survivor dataframe
+# subset high survivor group
 overlapping.name.h<- Reduce(intersect, list(columnname,hi.samples.string.ID))
 p.data.hi <- p.data[, which(names(p.data) %in% overlapping.name.h)]
-colnames(p.data.hi) <- c("Symbol", sprintf("H%d", 1:45))  
+colnames(p.data.hi) <- c("Symbol", sprintf("H%d", 1:45))   # simplify sample name to "H1, H2...H45"
 
-# subset low survivor dataframe
+# subset low survivor group
 
 overlapping.name.l <- Reduce(intersect, list(columnname,lo.samples.string.ID))
 p.data.low <- p.data[, which(names(p.data) %in% overlapping.name.l)]
-colnames(p.data.low) <- c("Symbol",sprintf("L%d", 1:44))
+colnames(p.data.low) <- c("Symbol",sprintf("L%d", 1:44)) # simplify sample name to "L1, L2...L44"
 
 # Combine High survivor and Low survivor datasets together
 data.s.h.l <- inner_join(p.data.hi, p.data.low, by = "Symbol")
-
 row.names(data.s.h.l) <- data.s.h.l$Symbol
-data.s.h.l <- data.s.h.l %>% select(-c("Symbol") ) 
+data.s.h.l <- data.s.h.l %>% dplyr::select(-c("Symbol")) 
 ```
 
 ```{r}
-1.3 Differential Gene Analysis
+## lima DE analysis
 
 library(edgeR)
 library("RColorBrewer")
-library("gplots")
 
 snames <- colnames(data.s.h.l)
 
@@ -777,12 +238,16 @@ drop <- which(apply(cpm(d0), 1, max) < cutoff)
 d <- d0[-drop,] 
 dim(d)
 
-# Use plotMDS check simmilarity/dis-similarity between High survival and low survival group.
+# Use plotMDS check simmilarity/dis-similarity between High survival and low survival group
 plotMDS(d,col = as.numeric(group))
 ```
 
 ```{r}
 # Fitting linear models in limma
+
+mm <- model.matrix(~0 + group)
+y <- voom(d, mm, plot = T)
+
 fit <- lmFit(y, mm)
 head(coef(fit))
 
@@ -797,13 +262,13 @@ head(top.table, 30)
 
 result.fdr_0.5 <- top.table[which(top.table$adj.P.Val< 0.05), ]
 
-# Preliminary conclusion: sample from High survival group:  "H1","H3","H5","H11","H31","H32","H36","H39" showed seperated distribution from other high suvival samples. There were no statistical differences between High survial group vs Low survival group, which indicated that my grouping criteria was not appropriate. After checking the phenotype datasets, samples "H1","H3","H5","H11","H31","H32","H36","H39" were only pancreatic neuroendocrine tumor samples in total samples (n=222). They are much less common than exocrine tumors, but has better survival rate and therapy outcome My plotMDS results showed neuroendocrine tumor samples had different molecular profiles than exocrine tumor. Neuroendocrine tumor samples could be a less T cell exhasution control for further analysis.
+# Preliminary conclusion: sample from High survival group:  "H1","H3","H5","H11","H31","H32","H36","H39" were seperated from other high suvival samples. There were no statistical differences between High survial group vs Low survival group. After checking phenotype dataset, samples "H1","H3","H5","H11","H31","H32","H36","H39" were only pancreatic neuroendocrine tumor samples in total samples (n=222). They were much less common than exocrine tumors, but has better survival rate and therapy outcome(reference:https://www.cancer.org/cancer/pancreatic-neuroendocrine-tumor/about/what-is-pnet.html). PlotMDS results showed neuroendocrine tumor samples had different molecular profiles from exocrine tumor. Neuroendocrine tumor samples could be a negative T cell dysfunction control for further analysis.
 
 ```
 
 
 ```{r}
-# Comparing the molecular profiles difference between pancreatic neuroendocrine tumor samples with other low survival rate pancreatic tumor samples.
+# Compared the molecular profiles difference between pancreatic neuroendocrine tumor samples with other pancreatic tumor samples which had low survival rate.
 
 # High survival group only keep "H1,H3,H5,H11,H31,H32,H36,H39"
 
@@ -856,19 +321,16 @@ result.selected.fdr_0.5 <- top.table[which(top.table$adj.P.Val< 0.05), ]
 
 
 ```{r}
-## Annotation
+# Annotation
 
 # remove decimal of Ensembl_ID
 
 data.modified <- sapply(strsplit(row.names(result.selected.fdr_0.5),"\\."), function(x) x[1])
 data.new <- cbind(data.modified, result.selected.fdr_0.5)
-data.new <- data.new[, -2]
-head(data.new)
-dim(data.new)
 
-#rename colume 1
+# rename colume 1
 library(dplyr)
-result.anno <- data.new %>% rename(ensembl_gene_id = data.modified)
+result.anno <- data.new %>% dplyr::rename(ensembl_gene_id = data.modified)
 
 # map annotation
 library('biomaRt')
@@ -882,12 +344,270 @@ head(result.anno)
 
 
 # Remove "NA" value in Symbol
-result.anno <- result.anno[complete.cases(result.anno[,8]),]
+result.anno <- result.anno[complete.cases(result.anno[,7]),]
 dim(result.anno)
 
 row.names(result.anno) <- result.anno$ensembl_gene_id
 result.anno <- result.anno[, -1]
 
-write.csv(result.anno, file = './DE_results/Selected_Hi__vs_L_.0.05.csv')
+# select Low survival positively correlated gene by using log(FC)<-1 and FDR <0.05
+
+result.anno.low <- result.anno[which(result.anno$logFC< -1), ]
+write.csv(result.anno.low, file = './DE_results/Selected_survival_High_vs_Low_logfc_minus_1_padj0.05.csv')
+
 ```
+
+```{r}
+### Venngraph between correlation analysis and DEG analysis
+
+correlation.data <-p.e.overlapping_0.5
+DEG.data <- result.anno.low$Symbol
+
+overlapping.gene<- Reduce(intersect, list(correlation.data,DEG.data))
+
+library("VennDiagram")
+correlation_dataset <- sample(correlation.data, replace = FALSE)
+DEG_dataset <- sample(DEG.data, replace = FALSE)
+
+
+venn.plot <- venn.diagram(
+	x = list(
+		correlation_dataset= correlation_dataset,
+		DEG_dataset = DEG_dataset 
+		),
+filename = "Venn_Correlation_DEG.tiff",
+	col = "transparent",
+	fill = 2:3,
+	alpha = 0.50,
+	cex = 1,
+	fontfamily = "serif",
+	fontface = "bold",
+	cat.col = rep("black", 2),
+	cat.cex = 1.3,
+	cat.fontfamily = "serif",
+	margin = 0.1
+	);
+
+### There are 268 overlapping genes between DEG dataset and correlation dataset
+```
+
+```{r}
+
+## GO and KEGG analysis
+
+library(DOSE)
+library(org.Hs.eg.db)
+library(topGO)
+library(clusterProfiler)
+library(pathview)
+
+
+x <- overlapping.gene
+test = bitr(x, 
+fromType="SYMBOL", 
+toType="ENTREZID",  
+OrgDb="org.Hs.eg.db") 
+
+ggo <- groupGO(gene = test$ENTREZID, OrgDb = org.Hs.eg.db, ont = "CC",level = 3,readable = TRUE)
+
+data(geneList, package="DOSE") #
+gene <- names(geneList)[abs(geneList) > 2]
+gene.df <- bitr(gene, fromType = "ENTREZID", toType = c("ENSEMBL", "SYMBOL"), OrgDb = org.Hs.eg.db)
+head(gene.df,2)
+
+
+ego_ALL <- enrichGO(gene = test$ENTREZID, 
+                universe = names(geneList),
+                OrgDb = org.Hs.eg.db, 
+                ont = "ALL", 
+                pAdjustMethod = "BH",
+                pvalueCutoff = 1, 
+                qvalueCutoff = 1,
+				readable = TRUE)
+head(ego_ALL,2)
+
+# GO-MF
+ego_MF <- enrichGO(gene = test$ENTREZID, universe = names(geneList),OrgDb = org.Hs.eg.db,ont = "MF", pAdjustMethod = "BH",pvalueCutoff = 1,qvalueCutoff = 1,readable = FALSE)
+ego_MF1 <- setReadable(ego_MF, OrgDb = org.Hs.eg.db)
+
+barplot(ego_MF, showCategory=20,title="EnrichmentGO_MF")
+
+
+# GO-BP
+ego_BP <- enrichGO(gene = test$ENTREZID, universe = names(geneList),OrgDb = org.Hs.eg.db,ont = "BP", pAdjustMethod = "BH",pvalueCutoff = 1,qvalueCutoff = 1,readable = FALSE)
+ego_BP1 <- setReadable(ego_BP, OrgDb = org.Hs.eg.db)
+
+barplot(ego_BP, showCategory=20,title="EnrichmentGO_BP")
+
+
+# GO-CC
+ego_CC <- enrichGO(gene = test$ENTREZID, universe = names(geneList),OrgDb = org.Hs.eg.db,ont = "CC", pAdjustMethod = "BH",pvalueCutoff = 1,qvalueCutoff = 1,readable = FALSE)
+ego_CC1 <- setReadable(ego_CC, OrgDb = org.Hs.eg.db)
+
+barplot(ego_CC, showCategory=20,title="EnrichmentGO_CC")
+
+
+# KEGG Analysis
+kk <- enrichKEGG(gene = test$ENTREZID,
+                 organism = 'hsa', 
+                 pvalueCutoff = 1)
+head(kk)
+
+dotplot(kk,title="Enrichment KEGG_dot")
+
+
+hsa04659 <- pathview(gene.data = geneList,
+
+pathway.id = "hsa04659", #
+
+species = "hsa",
+
+limit = list(gene=max(abs(geneList)), cpd=1))
+```
+
+```{r}
+
+## Correlation Results
+
+Heatmap of a selected gene potentially effect T cell dysfunction in pancreatic patients from TCGA pancreatic cohort, exhibiting high (75th percentile) and low(25th percentile) TNFRSF1B expression
+
+# Subset T cell dysfunction gene. Data was from above overlapping analysis. Used TNFRSF1B as example
+Biomarkers: CD8A, HAVCR2, LAG3, PDCD1, EOMES, TBX21,CTLA4,
+Candidate gene: TNFRSF1B 
+
+selected.gene <- c("CD8A", "HAVCR2", "LAG3", "PDCD1", "EOMES", "TBX21", "CTLA4", "ENTPD1", "CD244", "PRDM1", "TOX", "NR4A1","TNFRSF1B")
+data.extract <- data.clean[data.clean$Symbol %in% selected.gene, ]
+row.names(data.extract) <- data.extract$Symbol
+data.extract <- data.extract[, -1]
+data.extract.t <- data.frame(t(data.extract))
+sample.name <- row.names(data.extract.t)
+
+# exhibiting high (75th percentile) TNFRSF1B expression
+TNFRSF1B.hi <- data.extract.t[data.extract.t$TNFRSF1B >= quantile(data.extract.t$TNFRSF1B, 0.75), ]
+TNFRSF1B.hi.name <- sprintf("TNFRSF1B_High%d", 1:46)
+row.names(TNFRSF1B.hi) <- TNFRSF1B.hi.name
+TNFRSF1B.hi.t <- data.frame(t(TNFRSF1B.hi))
+
+# exhibiting low (25th percentile) TNFRSF1B expression
+TNFRSF1B.low <- data.extract.t[data.extract.t$TNFRSF1B <= quantile(data.extract.t$TNFRSF1B, 0.25), ]
+TNFRSF1B.low.name <- sprintf("TNFRSF1B_Low%d", 1:46)
+row.names(TNFRSF1B.low) <- TNFRSF1B.low.name
+TNFRSF1B.low.t <- data.frame(t(TNFRSF1B.low))
+
+# merge datasets
+TNFRSF1B.hi.low.merge <- merge(TNFRSF1B.hi.t, TNFRSF1B.low.t, by=0, all=TRUE)
+row.names(TNFRSF1B.hi.low.merge) <- TNFRSF1B.hi.low.merge$Row.names
+TNFRSF1B.hi.low.merge <- TNFRSF1B.hi.low.merge[, -1]
+datawithoutTNFRSF1B <- TNFRSF1B.hi.low.merge[-12, ]
+
+# Heatmap 
+library(pheatmap)
+library(RColorBrewer)
+library(gplots)
+
+# use TNFRSF1B as example 
+
+mymat <- datawithoutTNFRSF1B 
+colnames(mymat) <- c(rep("High", 46), rep("Low", 46))
+
+mat_breaks <- seq(min(mymat), max(mymat), length.out = 10)
+
+pheatmap(
+  mat               = mymat,
+  color             = viridis(length(mat_breaks) - 1),
+  breaks            = mat_breaks,
+  border_color      = NA,
+  show_colnames     = FALSE,
+  show_rownames     = TRUE,
+  cluster_cols      = FALSE,
+  drop_levels       = TRUE,
+  fontsize          = 14,
+  main              = "TNFRSF1B"
+)
+
+```
+
+```{r}
+# Scatter plot
+
+# used TNFRSF1B and PDCD1 as example
+
+library(tidyverse)
+library(dplyr)
+
+data.extract.scatter <- data.clean[data.clean$Symbol %in% p.e.overlapping_0.5, ]
+row.names(data.extract.scatter) <- data.extract.scatter$Symbol
+data.extract.scatter <- data.extract.scatter[, -1]
+data.extract.scatter.t <- data.frame(t(data.extract.scatter))
+sample.name <- row.names(data.extract.scatter.t)
+data.scatter.tnfrsf1b.pdcd1 <- data.extract.scatter.t %>% dplyr::select(TNFRSF1B, PDCD1) # TNFRSF1B, PDCD1 would changed to any other gene
+
+sp <- ggscatter(data.scatter.tnfrsf1b.pdcd1, x = "PDCD1", y = "TNFRSF1B",
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), 
+   conf.int = TRUE # Add confidence interval
+   )
+# Add correlation coefficient
+sp + stat_cor(method = "spearman", label.x = 0, label.y = 8)
+
+```
+
+```{r}
+## Survival analysis
+
+# Load transformed RSEM normalized count
+
+data.rsem <- read.table(gzfile("./Data/HiSeqV2.PADD.RSEM.normalized.gz"), sep="\t", header=TRUE, stringsAsFactors=FALSE)
+columnname.r <- str_replace_all(colnames(data.rsem), "[.]" , "-")
+colnames(data.rsem) <- columnname.r
+
+# load survival datasets
+data.survival <- read.table(gzfile("./Data/TCGA-PAAD.survival.tsv.gz"), sep="\t", header=TRUE, stringsAsFactors=FALSE)
+
+# Clean survival dataset
+data.survival.1 <- data.survival[, -3]
+data.survival.1$OS.time <- round((data.survival.1$OS.time)/30)
+
+# Extract T cell dysfunction genes. Data comes from above overlapping analysis
+data.extract.r <- data.rsem
+data.extract.r <- data.rsem[data.rsem$sample %in% p.overlapping_0.5, ]
+row.names(data.extract.r) <- data.extract.r$sample
+data.extract.r <- data.extract.r[, -1]
+data.extract.r.t <- data.frame(t(data.extract.r))
+sample.name <- row.names(data.extract.r.t)
+data.extract.r.t <- mutate(sample = as.character(sample.name), data.extract.r.t)
+
+#Combine survival and extracted rsem gene datasets together
+
+data.survival.1$sample <- substr(data.survival.1$sample, 1,15)
+data.combine.r <- inner_join(data.survival.1,data.extract.r.t,by = "sample")
+dim(data.combine.r)
+
+# Kaplan–Meier curves were constructed by dividing specimens at the one standard deviation above or below average expression of each selected  gene
+
+# use gene "TNFRSF1B" as an example
+
+Data.t.r <- scale(data.combine.r$TNFRSF1B,center = TRUE, scale = TRUE) # z score scaling
+test.data.r <- data.frame(data.combine.r[,1:3], Data.t.r)
+colnames(test.data.r) <- c('sample', 'OS', 'OS.time', 'TNFRSF1B')
+test.data.r$TNFRSF1B <- ifelse(test.data.r$TNFRSF1B> 1, 'High','Low') # one standard deviation above average expression was defined as "High"
+
+library(survival)
+library(survminer)
+res.cox <- coxph(Surv(OS.time, OS) ~ TNFRSF1B, data = text.data)
+pvalue <- summary(res.cox)$logtest["pvalue"]
+
+
+ggsurvplot(survfit(Surv(OS.time, OS) ~ TNFRSF1B,
+                   data = test.data.r),
+           data = test.data.r,
+           pval = TRUE,
+           xlab = 'Month',
+           break.time.by = 20,
+           risk.table.y.text.col = TRUE,
+           risk.table.y.text = FALSE)
+
+
+```
+
 
