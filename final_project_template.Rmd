@@ -480,15 +480,79 @@ filename = "Venn_Tcell_Memory_5genes.tiff",
 
 
 ```{r}
-1.6 Based on published GEO dataset
+# GO and KEGG analysis
+library(DOSE)
+library(org.Hs.eg.db)
+library(topGO)
+library(clusterProfiler)
+library(pathview)
+
+
+x <- p.e.overlapping_0.5
+test = bitr(x, 
+fromType="SYMBOL", 
+toType="ENTREZID",  
+OrgDb="org.Hs.eg.db") 
+
+ggo <- groupGO(gene = test$ENTREZID, OrgDb = org.Hs.eg.db, ont = "CC",level = 3,readable = TRUE)
+
+data(geneList, package="DOSE") #
+gene <- names(geneList)[abs(geneList) > 2]
+gene.df <- bitr(gene, fromType = "ENTREZID", toType = c("ENSEMBL", "SYMBOL"), OrgDb = org.Hs.eg.db)
+head(gene.df,2)
+
+
+ego_ALL <- enrichGO(gene = test$ENTREZID, 
+                universe = names(geneList),
+                OrgDb = org.Hs.eg.db, 
+                ont = "ALL", 
+                pAdjustMethod = "BH",
+                pvalueCutoff = 1, 
+                qvalueCutoff = 1,
+				readable = TRUE)
+head(ego_ALL,2)
+
+# GO-MF
+ego_MF <- enrichGO(gene = test$ENTREZID, universe = names(geneList),OrgDb = org.Hs.eg.db,ont = "MF", pAdjustMethod = "BH",pvalueCutoff = 1,qvalueCutoff = 1,readable = FALSE)
+ego_MF1 <- setReadable(ego_MF, OrgDb = org.Hs.eg.db)
+
+barplot(ego_MF, showCategory=20,title="EnrichmentGO_MF")
+
+
+# GO-BP
+ego_BP <- enrichGO(gene = test$ENTREZID, universe = names(geneList),OrgDb = org.Hs.eg.db,ont = "BP", pAdjustMethod = "BH",pvalueCutoff = 1,qvalueCutoff = 1,readable = FALSE)
+ego_BP1 <- setReadable(ego_BP, OrgDb = org.Hs.eg.db)
+
+barplot(ego_BP, showCategory=20,title="EnrichmentGO_BP")
+
+
+# GO-CC
+ego_CC <- enrichGO(gene = test$ENTREZID, universe = names(geneList),OrgDb = org.Hs.eg.db,ont = "CC", pAdjustMethod = "BH",pvalueCutoff = 1,qvalueCutoff = 1,readable = FALSE)
+ego_CC1 <- setReadable(ego_CC, OrgDb = org.Hs.eg.db)
+
+barplot(ego_CC, showCategory=20,title="EnrichmentGO_CC")
 
 
 
+# KEGG Analysis
+kk <- enrichKEGG(gene = test$ENTREZID,
+                 organism = 'hsa', 
+                 pvalueCutoff = 1)
+head(kk)
+
+dotplot(kk,title="Enrichment KEGG_dot")
+
+
+hsa04659 <- pathview(gene.data = geneList,
+
+pathway.id = "hsa04659", #
+
+species = "hsa",
+
+limit = list(gene=max(abs(geneList)), cpd=1))
 ```
 
 ```{r}
-
-
 
 1.5 Correlation plot
 
@@ -589,7 +653,7 @@ sp + stat_cor(method = "spearman", label.x = 0, label.y = 8)
 ```
 
 ```{r}
-1.6 Survival analysis
+1.7 Survival analysis
 
 # Load transformed RSEM normalized count
 
@@ -648,11 +712,8 @@ ggsurvplot(survfit(Surv(OS.time, OS) ~ TNFRSF1B,
 
 
 ```{r}
-
-
-
-#### archive
-Survial data will be ranked by overall phenot time (os.time), high (75% percentile) and low (25% percentile) os.time samples will be selected for further analysis.
+## 
+Survial data will be ranked by overall survival time (os.time), high (75% percentile) and low (25% percentile) os.time samples will be selected for further analysis.
 
 
 # load survival datasets
