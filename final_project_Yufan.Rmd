@@ -622,8 +622,9 @@ limit = list(gene=max(abs(geneList)), cpd=1))
 
 ### Heatmap
 
-Biomarkers: CD8A, HAVCR2, LAG3, PDCD1, EOMES, TBX21,CTLA4,
-selected gene: TNFRSF1B
+**Biomarkers: CD8A, HAVCR2, LAG3, PDCD1, EOMES, TBX21,CTLA4**
+
+**Example gene: TNFRSF1B**
 ```{r heatmap, eval=T, echo=F}
 
 selected.gene <- c("CD8A", "HAVCR2", "LAG3", "PDCD1", "EOMES", "TBX21", "CTLA4", "ENTPD1", "CD244", "PRDM1", "TOX", "NR4A1","TNFRSF1B")
@@ -679,6 +680,7 @@ pheatmap(
 
 ### Scatter plot
 
+**Example gene: TNFRSF1B**
 ```{r scatter_plot, eval=T, echo=F, fig.align = "center"}
 # Scatter plot
  # Use PDCD1 as example
@@ -701,8 +703,8 @@ sp + stat_cor(method = "spearman", label.x = 0, label.y = 8)
 ```
 
 ## Survival analysis
-
-```{r survival_analysis, eval=T, echo=F, fig.align = "center"}
+### Data prepration
+```{r survival_analysis_dataprep, eval=T, echo=F, fig.align = "center"}
 ## Survival analysis
 
 # Load transformed RSEM normalized count
@@ -735,20 +737,26 @@ dim(data.combine.r)
 
 
 library(tidyverse)
-# survival analysis
+```
 
-# Kaplan–Meier curves were constructed by dividing specimens at the one standard deviation above or below average expression of each selected  gene
+### Result
 
-Data.t.r <- scale(data.combine.r$PDCD1,center = TRUE, scale = TRUE) # z score scaling
+Kaplan–Meier curves were constructed by dividing specimens at the one standard deviation above or below average expression of each selected gene. 
+
+**Example gene: TNFRSF1B**
+
+```{r survival_analysis, eval=T, echo=F, fig.align = "center"}
+
+Data.t.r <- scale(data.combine.r$TNFRSF1B,center = TRUE, scale = TRUE) # z score scaling
 test.data.r <- data.frame(data.combine.r[,1:3], Data.t.r)
-colnames(test.data.r) <- c('sample', 'OS', 'OS.time', 'PDCD1')
-test.data.r$PDCD1 <- ifelse(test.data.r$PDCD1> 1, 'High','Low') # one standard deviation above average expression was defined as "High"
+colnames(test.data.r) <- c('sample', 'OS', 'OS.time', 'TNFRSF1B')
+test.data.r$TNFRSF1B <- ifelse(test.data.r$TNFRSF1B> 1, 'High','Low') # one standard deviation above average expression was defined as "High"
 
 library(survival)
 library(survminer)
 
 
-ggsurvplot(survfit(Surv(OS.time, OS) ~ PDCD1,
+ggsurvplot(survfit(Surv(OS.time, OS) ~ TNFRSF1B,
                    data = test.data.r),
            data = test.data.r,
            pval = TRUE,
