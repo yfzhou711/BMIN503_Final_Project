@@ -10,9 +10,9 @@ Adoptive cell therapy with chimeric antigen receptor expressing T (CAR T) cells 
   
 Results could be find from below catergorized folders:
 
-Correlation_results
+correlation_results
 
-Raw_data
+Data
 
 Survival_results
 

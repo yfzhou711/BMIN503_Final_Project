@@ -1,16 +1,16 @@
 ---
-title: "BMIN503/EPID600 Final Project"
-author: "Yufan Zhou"
-output: 
+title: 'Predict T cell dysfunction genes from TCGA Pancreatic Cancer Cohort'
+author: 'Yufan Zhou'
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
   html_document:
-    toc: false 
-    depth: 3 
-    theme: paper 
-    highlight: tango
+    toc: TRUE
+    depth: 3
+editor_options: 
+  chunk_output_type: console
 ---
-```{r set-options, echo=FALSE, cache=FALSE}
-options(width = 400)
-```  
+
+
 ***
 ### Overview
 Adoptive cell therapy with chimeric antigen receptor expressing T (CAR T) cells has shown promising therapeutic efficacy against leukemia and lymphoma. However, CAR T cells in solid tumors fail to be as effective as in liquid tumors since they enter into a hyporesponsive (exhausted or dysfunctional) state that is induced by chronic antigen stimulation in cancer. To determine what kind of genes contribute to T cell exhaustion/ dysfunction from clinical patients sample would be meaningful to guide next-generation CAR T cell production. I identitified over two hundreds potential signatures of T cell dysfunction from pancreatic tumor cohort by testing how the expression of each gene in tumor interact with the classiscal T cell specific dysfunction biomarkers. These potential T cell dysfunction genes were highly correlated with T cell activation and was correlated with poor survival rate. 
@@ -23,151 +23,328 @@ Gene expression biomarkers in T cells, such as PDCD1, HACVR2, LAG3, TOX, EOMES, 
 
 ### Methods
 
-1. Data Source
-
-Datasets:
-
-Level Normalized FKPM counts (n=182) and survival data (n=222) were downloaded from GDC TCGA Pancreatic Cancer cohort 
-
-Biomarkers:
-
-T cell dysfunction biomarkers: CD8A, HAVCR2, LAG3, PDCD1, EOMES, TBX21, CTLA4
-
-
-2. Correlation analysis
+1. Correlation analysis
 
 TCGA genomic data were downloaded from the UCSC cancer genome browser project. Gene expression was measured experimentally using the Illumina HiSeq 2000 RNA Sequencing platform and log2(x + 1) transformed. Spearman’s rank correlation test will be used to assess the strength of the relationship between each classical T cell biomarkers with rest of 50,000 genes. The strength of a correlation was measured by the correlation coefficient r. Correlation greater than 0.5 was used as criteria to select candidate gene. Biomarkers correlation gene pools were performed overlapping analysis. 
 
-3. Survival analysis
+2. Survival analysis
 
 Kaplan–Meier curves were constructed by dividing specimens at the one standard deviation above or below average expression of each selected  gene. Overall survival (OS) data were available for all 222 patients
 
-4. Differential gene expression
+3. Differential gene expression
 
 Differential gene expression was performed with Limma. Limma-voom was used to identify transcripts that were significantly differntially expressed between experimental groups using adjusted P value of <0.05.
 
+***
 
-### Results
+This report shows the process of discovering potential T cell dysfunction genes from TCGA cohort, including:
 
-```{r}
+* Data preprocess
+* Correlation analysis
+* Differential gene expression analysis
+* Overlapping analysis
+* Survival analysis
 
-### Intergrative correlation analysis of discovering potential T cell dysfunction realted genes from TCGA Pancreatic Cancer cohort
+Load the necessary libraries. Load affy and dplyr packages later since they will mask other functions.
 
-### Data Source
+```{r lib, eval=T, echo=F, message=F, warning=F}
+library(knitr)
+library(pander)
+library(biomaRt)
+library(curl)
+library(VennDiagram)
+library(stringr)
+library(edgeR)
+library(RColorBrewer)
+library(biomaRt)
+library(DOSE)
+library(org.Hs.eg.db)
+library(topGO)
+library(clusterProfiler)
+library(pathview)
+library(curl)
+library(pheatmap)
+library(RColorBrewer)
+library(ggplot2)
+library(tidyverse)
+library(survival)
+library(survminer)
+library(viridis)
 
-# Datasets
-Normalized fkpm counts (n=182) and survival data (n=222) were downloaded from GDC TCGA Pancreatic Cancer cohort.
+```
 
-data download link: "https://xenabrowser.net/datapages/?cohort=GDC%20TCGA%20Pancreatic%20Cancer%20(PAAD)&removeHub=https%3A%2F%2Fxena.treehouse.gi.ucsc.edu%3A443"
+## Data Preprocess
 
-# Biomarkers
+**Datasets:**
 
-T cell dysfunction biomarkers: CD8A, HAVCR2, LAG3, PDCD1, EOMES, TBX21, CTLA4
+* Transformed FPKM normalized count (n=182) 
+* Transformed RSEM normalized count (n=183)
+* Survival data (n=222) 
+
+All data were download from: https://xenabrowser.net/datapages/
 
 
-### Data Clean
+**Biomarkers:**
 
-# load datasets
+* T cell exhaustion biomarkers: CD8A, HAVCR2, LAG3, PDCD1, EOMES, TBX21, CTLA4
+
+
+## Correlation Analysis
+
+### Load Dataset
+```{r load_data, eval=T, echo=T}
 data <- read.table(gzfile("./Data/TCGA-PAAD.htseq_fpkm.tsv.gz"), sep="\t", header=TRUE, stringsAsFactors=FALSE)
+data[1:6, 1:10]
 
 # remove decimal of Ensembl_ID
 data_modified <- sapply(strsplit(data$Ensembl_ID,"\\."), function(x) x[1])
 data_new <- cbind(data_modified, data)
 data_new <- data_new[, -2]
-head(data_new)
 
-# rename colume 1
 library(dplyr)
-data2 <- data_new %>% rename(ensembl_gene_id = data_modified)
-head(data2)
+data2 <- data_new %>% dplyr::rename(ensembl_gene_id = data_modified)
+```
 
-# map annotation
-library('biomaRt')
-library("curl")
+### Annotation
+Use ensembl gene id to annotate gene name.
+
+Remove NA gene.
+
+Simplify sample name to arabic numerals "1,2,3..182".
+
+```{r anno, eval=T, echo=F}
+# Use ensembl gene id to annotate
 mart <- useDataset("hsapiens_gene_ensembl", useMart("ensembl"))
 gene <-getBM(attributes=c("ensembl_gene_id","external_gene_name"), values =data2$ensembl_gene_id, mart = mart)
 id <- match(data2$ensembl_gene_id , gene$ensembl_gene_id)
 data2$Symbol <- gene$external_gene_name[id]
-head(data2)
 
-# Remove "NA" value in Symbol
+#  Remove missing value
 data2 <- data2[complete.cases(data2[,184]),]
-dim(data2)
 
-# Clean the Data
+#  Simplify sample name
 library(dplyr)
 data.clean <- cbind(symbol = data2$Symbol, data2)
 data.clean <- subset(data.clean, select=-c(ensembl_gene_id,Symbol))
 colnames(data.clean) <- c("Symbol",seq(1,182))
-data.clean[complete.cases(data.clean), ]
 ```
 
-```{r}
+```{r annotation_table, eval=T, warning=F,results="asis",echo=F}
+pandoc.table(data.clean[1:6, 1:10], split.tables=Inf, caption="Parts of annotated dataframe")
+```
 
-### T cell dysfunction biomarkers overlappping correlation analysis
+### Correlation Analysis
 
-T cell dysfunction biomarkers: HAVCR2, CD8A, LAG3, PDCD1, EOMES, TBX21, CTLA4
+Spearman’s rank correlation test will be used to assess the strength of the relationship between each classical T cell biomarkers with rest of 50,000 genes.
 
-# Used HAVCR2 as example, "gene" could be replaced by above biomarkers respectively
+**Biomarker CD8A, HAVCR2, LAG3, PDCD1, EOMES, TBX21, CTLA4 will be tested repectively.**
+
+1. HAVCR2
+```{r correlation_havcr2, eval=F, echo=T}
 
 # set an empty dataframe
-result_gene <- data.frame((matrix(nrow = 56553, ncol = 2))) # gene is HAVCR2
-colnames(result_gene) <- c("variable", "R")
+result_havcr2 <- data.frame((matrix(nrow = 56553, ncol = 2)))
+colnames(result_havcr2) <- c("variable", "R")
 
 # for loop to retreive R value
 
-x <- data.frame(t(subset(data.clean, Symbol == "gene")[-1]))  # gene is HAVCR2
-colnames(x) <- subset(data.clean, Symbol == "gene")[,1]
+x <- data.frame(t(subset(data.clean, Symbol == "HAVCR2")[-1]))
+colnames(x) <- subset(data.clean, Symbol == "HAVCR2")[,1]
 
 for (i in 1:56553){
   y = data.frame(t(subset(data.clean[i,])[-1]))
   colnames(y) <- subset(data.clean[i,])[,1]
-  res_gene <- cor.test(x$gene, y[1:182,1], method = "spearman", exact=F) # gerne is HAVCR2
-  result_gene[i,2] <- res_gene$estimate
-  result_gene[i,1] <- as.character(data.clean[i,1])
+  res_havcr2 <- cor.test(x$HAVCR2, y[1:182,1], method = "spearman", exact=F)
+  result_havcr2[i,2] <- res_havcr2$estimate
+  result_havcr2[i,1] <- as.character(data.clean[i,1])
 }
-result_gene # gene is HAVCR2
+result_havcr2
+write.csv(result_havcr2, file = "./correlation_result/result_havcr2.csv")
+```
+2. PDCD1
+```{r correlation_pdcd1, eval=F, echo=T}
+# set an empty dataframe
+result_pdcd1 <- data.frame((matrix(nrow = 56553, ncol = 2)))
+colnames(result_pdcd1) <- c("variable", "R")
 
+# for loop to retreive R value
+
+x <- data.frame(t(subset(data.clean, Symbol == "PDCD1")[-1]))
+colnames(x) <- subset(data.clean, Symbol == "PDCD1")[,1]
+
+for (i in 1:56553){
+  y = data.frame(t(subset(data.clean[i,])[-1]))
+  colnames(y) <- subset(data.clean[i,])[,1]
+  res_pdcd1 <- cor.test(x$PDCD1, y[1:182,1], method = "spearman", exact=F)
+  result_pdcd1[i,2] <- res_pdcd1$estimate
+  result_pdcd1[i,1] <- as.character(data.clean[i,1])
+}
+result_pdcd1
+write.csv(result_pdcd1, file = "./correlation_result/result_pdcd1.csv")
+```
+3. LAG3
+```{r correlation_lag3, eval=F, echo=T}
+
+# set an empty dataframe
+result_lag3 <- data.frame((matrix(nrow = 56553, ncol = 2)))
+colnames(result_lag3) <- c("variable", "R")
+
+# for loop to retreive R value
+
+x <- data.frame(t(subset(data.clean, Symbol == "LAG3")[-1]))
+colnames(x) <- subset(data.clean, Symbol == "LAG3")[,1]
+
+for (i in 1:56553){
+  y = data.frame(t(subset(data.clean[i,])[-1]))
+  colnames(y) <- subset(data.clean[i,])[,1]
+  res_lag3 <- cor.test(x$LAG3, y[1:182,1], method = "spearman", exact=F)
+  result_lag3[i,2] <- res_lag3$estimate
+  result_lag3[i,1] <- as.character(data.clean[i,1])
+}
+result_lag3
+write.csv(result_lag3, file = "./correlation_result/result_lag3.csv")
+```
+4. TBX21
+```{r correlation_tbx21, eval=F, echo=T}
+
+# set an empty dataframe
+result_tbx21 <- data.frame((matrix(nrow = 56553, ncol = 2)))
+colnames(result_tbx21) <- c("variable", "R")
+
+# for loop to retreive R value
+
+x <- data.frame(t(subset(data.clean, Symbol == "TBX21")[-1]))
+colnames(x) <- subset(data.clean, Symbol == "TBX21")[,1]
+
+for (i in 1:56553){
+  y = data.frame(t(subset(data.clean[i,])[-1]))
+  colnames(y) <- subset(data.clean[i,])[,1]
+  res_tbx21 <- cor.test(x$TBX21, y[1:182,1], method = "spearman", exact=F)
+  result_tbx21[i,2] <- res_tbx21$estimate
+  result_tbx21[i,1] <- as.character(data.clean[i,1])
+}
+result_tbx21
+write.csv(result_tbx21, file = "./correlation_result/result_tbx21.csv")
+```
+5. EOMES
+```{r correlation_eomes, eval=F, echo=T}
+
+# set an empty dataframe
+result_eomes <- data.frame((matrix(nrow = 56553, ncol = 2)))
+colnames(result_eomes) <- c("variable", "R")
+
+# for loop to retreive R value
+
+x <- data.frame(t(subset(data.clean, Symbol == "EOMES")[-1]))
+colnames(x) <- subset(data.clean, Symbol == "EOMES")[,1]
+
+for (i in 1:56553){
+  y = data.frame(t(subset(data.clean[i,])[-1]))
+  colnames(y) <- subset(data.clean[i,])[,1]
+  res_eomes <- cor.test(x$EOMES, y[1:182,1], method = "spearman", exact=F)
+  result_eomes[i,2] <- res_eomes$estimate
+  result_eomes[i,1] <- as.character(data.clean[i,1])
+}
+result_eomes
+write.csv(result_eomes, file = "./correlation_result/result_eomes.csv")
+```
+6. CTLA4
+```{r correlation_ctla4, eval=F, echo=T}
+# set an empty dataframe
+result_ctla4 <- data.frame((matrix(nrow = 56553, ncol = 2)))
+colnames(result_ctla4) <- c("variable", "R")
+
+# for loop to retreive R value
+
+x <- data.frame(t(subset(data.clean, Symbol == "CTLA4")[-1]))
+colnames(x) <- subset(data.clean, Symbol == "CTLA4")[,1]
+
+for (i in 1:56553){
+  y = data.frame(t(subset(data.clean[i,])[-1]))
+  colnames(y) <- subset(data.clean[i,])[,1]
+  res_ctla4 <- cor.test(x$CTLA4, y[1:182,1], method = "spearman", exact=F)
+  result_ctla4[i,2] <- res_ctla4$estimate
+  result_ctla4[i,1] <- as.character(data.clean[i,1])
+}
+result_ctla4
+write.csv(result_ctla4, file = "./correlation_result/result_ctla4.csv")
+```
+7. CD8A
+```{r correlation_cd8a, eval=F, echo=T}
+# set an empty dataframe
+result_cd8a <- data.frame((matrix(nrow = 56553, ncol = 2)))
+colnames(result_cd8a) <- c("variable", "R")
+
+# for loop to retreive R value
+
+x <- data.frame(t(subset(data.clean, Symbol == "CD8A")[-1]))
+colnames(x) <- subset(data.clean, Symbol == "CD8A")[,1]
+
+for (i in 1:56553){
+  y = data.frame(t(subset(data.clean[i,])[-1]))
+  colnames(y) <- subset(data.clean[i,])[,1]
+  res_cd8a <- cor.test(x$CD8A, y[1:182,1], method = "spearman", exact=F)
+  result_cd8a[i,2] <- res_cd8a$estimate
+  result_cd8a[i,1] <- as.character(data.clean[i,1])
+}
+result_cd8a
+write.csv(result_cd8a, file = "./correlation_result/result_cd8a.csv")
 ```
 
-```{r}
-### Overlapping Analysis
+### Overlapping Analysis for correlation results
 
-Used R >= 0.5 as cut-off
+The strength of a correlation was measured by the correlation coefficient r. Correlation greater than 0.5 was used as cutoff. Seven biomarkers correlation genesets were used for overlapping analysis
 
+**345 overlapping genes were selected out**
+
+```{r overlapping_correlation, eval=T, echo=F}
+
+## R >= 0.5
 # HAVCR2
-havcr2_0.5 <- subset(result_havcr2, R >=0.5)
+result.havcr2 <- read.csv("./correlation_result/result_havcr2.csv", header=TRUE, stringsAsFactors = FALSE)
+havcr2_0.5 <- subset(result.havcr2, R >=0.5)
 gene_list_havcr2_0.5 <- havcr2_0.5$variable
 
 # LAG3
+result_lag3 <- read.csv("./correlation_result/result_lag3.csv", header=TRUE, stringsAsFactors = FALSE)
 lag3_0.5 <- subset(result_lag3, R >=0.5)
 gene_list_lag3_0.5 <- lag3_0.5$variable
 
 # PDCD1
+result_pdcd1 <- read.csv("./correlation_result/result_pdcd1.csv", header=TRUE, stringsAsFactors = FALSE)
 pdcd1_0.5 <- subset(result_pdcd1, R >=0.5)
 gene_list_pdcd1_0.5 <- pdcd1_0.5$variable
 
 # CD8A
+result_cd8a <- read.csv("./correlation_result/result_cd8a.csv", header=TRUE, stringsAsFactors = FALSE)
 cd8a_0.5 <- subset(result_cd8a, R >=0.5)
 gene_list_cd8a_0.5 <- cd8a_0.5$variable
 
 # EOMES
+result_eomes <- read.csv("./correlation_result/result_eomes.csv", header=TRUE, stringsAsFactors = FALSE)
 eomes_0.5 <- subset(result_eomes, R >=0.5)
 gene_list_eomes_0.5 <- eomes_0.5$variable
 
 # TBX21
+result_tbx21 <- read.csv("./correlation_result/result_tbx21.csv", header=TRUE, stringsAsFactors = FALSE)
 tbx21_0.5 <- subset(result_tbx21, R >=0.5)
 gene_list_tbx21_0.5 <- tbx21_0.5$variable
 
 # CTLA4
+result_ctla4 <- read.csv("./correlation_result/result_ctla4.csv", header=TRUE, stringsAsFactors = FALSE)
 ctla4_0.5 <- subset(result_ctla4, R >=0.5)
 gene_list_ctla4_0.5 <- ctla4_0.5$variable
 
-## Ovelapping results
+## ovelapping results
 p.e.overlapping_0.5 <- Reduce(intersect, list(gene_list_havcr2_0.5,gene_list_lag3_0.5,gene_list_cd8a_0.5,gene_list_eomes_0.5, gene_list_tbx21_0.5))
 
-# VennDiagram 
-library("VennDiagram")
+p.e.overlapping_0.5
+```
+
+**Venn diagram for top 5 biomarker genes**
+
+```{r venn_overlap_corre, eval=T, echo=F,out.width="60%"}
+
 HAVCR2 <- sample(gene_list_havcr2_0.5, replace = FALSE)
 LAG3 <- sample(gene_list_lag3_0.5, replace = FALSE)
 CD8A <- sample(gene_list_cd8a_0.5, replace = FALSE)
@@ -182,7 +359,7 @@ venn.plot <- venn.diagram(
 		EOMES = EOMES,
 		TBX21 =TBX21
 		),
-filename = "Venn_Tcell_Dysfuncion_8genes.tiff",
+filename = "Venn_Tcell_Dysfunction_5genes.png",
 	col = "transparent",
 	fill = 1:5,
 	alpha = 0.50,
@@ -195,12 +372,19 @@ filename = "Venn_Tcell_Dysfuncion_8genes.tiff",
 	margin = 0.1
 	);
 
+knitr::include_graphics("Venn_Tcell_Dysfunction_5genes.png")
 ```
 
+## Differential gene analysis
 
-```{r}
-### Differential gene analysis
-Samples were ranked by overall survival time (os.time), high (75% percentile) and low (25% percentile) os.time samples were selected for further analysis
+### Data preparation
+
+Samples were ranked by overall survival time (os.time), and categorized into high survival group (75% percentile) and low survival group (25% percentile). 
+
+Simplify samples name to "H1,H2,..H45" and "l1, l2,..l44"
+
+```{r deg_analysis_data_prep, eval=T, echo=F}
+
 
 # load survival datasets
 p.s.data <- read.table(gzfile('./Data/TCGA-PAAD.survival.tsv.gz'), sep="\t", header=TRUE, stringsAsFactors=FALSE)
@@ -209,25 +393,27 @@ class(p.s.data$OS.time)
 hi.p.s.data <- p.s.data[p.s.data$OS.time > quantile(p.s.data$OS.time, 0.75), ]
 lo.p.s.data <- p.s.data[p.s.data$OS.time < quantile(p.s.data$OS.time, 0.25), ]
 
-hi.samples.string.ID <- c("Ensembl_ID",hi.p.s.data$sample)
-lo.samples.string.ID <- c("Ensembl_ID",lo.p.s.data$sample)
+hi.p.s.data$sample <- substr(hi.p.s.data$sample, 1,15)
+hi.samples.string.ID <- c("sample",hi.p.s.data$sample)
+
+lo.p.s.data$sample <- substr(lo.p.s.data$sample, 1,15)
+lo.samples.string.ID <- c("sample",lo.p.s.data$sample)
 
 # load gene expression dataset
 p.data <- read.table(gzfile('./Data/HiSeqV2.PADD.RSEM.normalized.gz'), sep="\t", heade=TRUE, stringsAsFactors=FALSE)
 
-library(dplyr)
 library(stringr)
 
 # p.dataset
 columnname <- str_replace_all(colnames(p.data), "[.]" , "-")
 colnames(p.data) <- columnname
 
-# subset high survivor group
+# subset high survival group
 overlapping.name.h<- Reduce(intersect, list(columnname,hi.samples.string.ID))
 p.data.hi <- p.data[, which(names(p.data) %in% overlapping.name.h)]
 colnames(p.data.hi) <- c("Symbol", sprintf("H%d", 1:45))   # simplify sample name to "H1, H2...H45"
 
-# subset low survivor group
+# subset low survival group
 
 overlapping.name.l <- Reduce(intersect, list(columnname,lo.samples.string.ID))
 p.data.low <- p.data[, which(names(p.data) %in% overlapping.name.l)]
@@ -237,63 +423,18 @@ colnames(p.data.low) <- c("Symbol",sprintf("L%d", 1:44)) # simplify sample name 
 data.s.h.l <- inner_join(p.data.hi, p.data.low, by = "Symbol")
 row.names(data.s.h.l) <- data.s.h.l$Symbol
 data.s.h.l <- data.s.h.l %>% dplyr::select(-c("Symbol")) 
+data.s.h.l[1:6, ]
 ```
 
-```{r}
-## lima DE analysis
+### Phenotypic analysis
 
-library(edgeR)
-library("RColorBrewer")
+Sample from High survival group "H4", "H15", "H18", "H23", "H25", "H26","H29","H40" were tumor free samples. They could be assumed as healthy specimen control.
 
-snames <- colnames(data.s.h.l)
-
-factor1 <- substr(snames, 1, 1)
-group <- interaction(factor1)
-
-d0 <- DGEList(data.s.h.l)
-d0 <- calcNormFactors(d0)
-d0$samples
-
-cutoff <- 3
-drop <- which(apply(cpm(d0), 1, max) < cutoff)
-d <- d0[-drop,] 
-dim(d)
-
-# Use plotMDS check simmilarity/dis-similarity between High survival and low survival group
-plotMDS(d,col = as.numeric(group))
-```
-
-```{r}
-# Fitting linear models in limma
-
-mm <- model.matrix(~0 + group)
-y <- voom(d, mm, plot = T)
-
-fit <- lmFit(y, mm)
-head(coef(fit))
-
-contr <- makeContrasts(groupH - groupL, levels = colnames(coef(fit)))
-contr
-
-tmp <- contrasts.fit(fit, contr)
-
-tmp <- eBayes(tmp)
-top.table <- topTable(tmp, sort.by = "P", n = Inf)
-head(top.table, 30)
-
-result.fdr_0.5 <- top.table[which(top.table$adj.P.Val< 0.05), ]
-
-# Preliminary conclusion: sample from High survival group:  "H1","H3","H5","H11","H31","H32","H36","H39" were seperated from other high suvival samples. There were no statistical differences between High survial group vs Low survival group. After checking phenotype dataset, samples "H1","H3","H5","H11","H31","H32","H36","H39" were only pancreatic neuroendocrine tumor samples in total samples (n=222). They were much less common than exocrine tumors, but has better survival rate and therapy outcome(reference:https://www.cancer.org/cancer/pancreatic-neuroendocrine-tumor/about/what-is-pnet.html). PlotMDS results showed neuroendocrine tumor samples had different molecular profiles from exocrine tumor. Neuroendocrine tumor samples could be a negative T cell dysfunction control for further analysis.
-
-```
-
-
-```{r}
-# Compared the molecular profiles difference between pancreatic neuroendocrine tumor samples with other pancreatic tumor samples which had low survival rate.
+```{r phenotype_prep, eval=T, echo=F}
 
 # High survival group only keep "H1,H3,H5,H11,H31,H32,H36,H39"
 
-selected.samples <- c("H1", "H3", "H5", "H11", "H31", "H32","H36","H39")
+selected.samples <- c("H4", "H15", "H18", "H23", "H25", "H26","H29","H40")
 
 D1 <- data.s.h.l[, which(names(data.s.h.l) %in% selected.samples)]
 selected.hi <- c(sprintf("H%d", 1:45))  
@@ -302,8 +443,9 @@ data.selected <- cbind(D1,D2)
 
 ```
 
-```{r}
-# Differential Gene Analysis
+### Comparison of high survival group vs. low survival group
+
+```{r comparison, eval=T, echo=F}
 
 snames <- colnames(data.selected)
 
@@ -319,11 +461,21 @@ drop <- which(apply(cpm(d0), 1, max) < cutoff)
 d <- d0[-drop,] 
 dim(d)
 
+```
+**1. plotMDS**
+
+**MDS plot showed good separation between high survival group vs. low survival group**
+```{r plotmds, eval=T, echo=F}
+# plotMDS 
 plotMDS(d, col = as.numeric(group))
 
 mm <- model.matrix(~0 + group)
-y <- voom(d, mm, plot = T)
+y <- voom(d, mm, plot = F)
+```
 
+**2. Fitting linear models in limma**
+
+```{r deg_analysis_lima, eval=T, echo=F}
 # Fitting linear models in limma
 fit <- lmFit(y, mm)
 head(coef(fit))
@@ -338,51 +490,31 @@ top.table <- topTable(tmp, sort.by = "P", n = Inf)
 head(top.table, 30)
 
 result.selected.fdr_0.5 <- top.table[which(top.table$adj.P.Val< 0.05), ]
-```
 
 
-```{r}
-# Annotation
-
-# remove decimal of Ensembl_ID
-
-data.modified <- sapply(strsplit(row.names(result.selected.fdr_0.5),"\\."), function(x) x[1])
-data.new <- cbind(data.modified, result.selected.fdr_0.5)
-
-# rename colume 1
-library(dplyr)
-result.anno <- data.new %>% dplyr::rename(ensembl_gene_id = data.modified)
-
-# map annotation
-library('biomaRt')
-library("curl")
-mart <- useDataset("hsapiens_gene_ensembl", useMart("ensembl"))
-listAttributes(ensembl)
-gene <-getBM(attributes=c("ensembl_gene_id","external_gene_name"), values =result.anno$ensembl_gene_id, mart = mart)
-id <- match(result.anno$ensembl_gene_id , gene$ensembl_gene_id)
-result.anno$Symbol <- gene$external_gene_name[id]
-head(result.anno)
-
-
-# Remove "NA" value in Symbol
-result.anno <- result.anno[complete.cases(result.anno[,7]),]
-dim(result.anno)
-
-row.names(result.anno) <- result.anno$ensembl_gene_id
-result.anno <- result.anno[, -1]
-
-# select Low survival positively correlated gene by using log(FC)<-1 and FDR <0.05
-
-result.anno.low <- result.anno[which(result.anno$logFC< -1), ]
-write.csv(result.anno.low, file = './DE_results/Selected_survival_High_vs_Low_logfc_minus_1_padj0.05.csv')
 
 ```
+Low survival correlated gene log(FC)<-0 and FDR <0.05, top 10 genes:
+```{r deg_anno, eval=F, echo=F}
 
-```{r}
-### Venngraph between correlation analysis and DEG analysis
+# Low survival correlated gene log(FC)<-0 and FDR <0.05
 
+result.anno.low <- result.selected.fdr_0.5[which(result.selected.fdr_0.5$logFC< -0), ]
+write.csv(result.anno.low, file = './DE_results/Selected_low_survivalcorrelated_padj0.05.csv')
+result.anno.low[1:10,]
+```
+
+## Overlapping between correlation analysis and DEG analysis
+
+Venn diagram showed 196 overlapping genes between DEG dataset and correlation dataset
+
+```{r venn_correl_deg, eval=T, echo=F,out.width="60%"}
+
+result.anno.low.05 <- read.csv("./DE_results/Selected_low_survivalcorrelated_padj0.05.csv", header=TRUE, stringsAsFactors = FALSE)
+result.anno.low.05 <- result.anno.low.05[complete.cases(result.anno.low.05[,1]),]
 correlation.data <-p.e.overlapping_0.5
-DEG.data <- result.anno.low$Symbol
+DEG.data <- result.anno.low.05$X
+
 
 overlapping.gene<- Reduce(intersect, list(correlation.data,DEG.data))
 
@@ -391,12 +523,12 @@ correlation_dataset <- sample(correlation.data, replace = FALSE)
 DEG_dataset <- sample(DEG.data, replace = FALSE)
 
 
-venn.plot <- venn.diagram(
+venn.plot2 <- venn.diagram(
 	x = list(
 		correlation_dataset= correlation_dataset,
 		DEG_dataset = DEG_dataset 
 		),
-filename = "Venn_Correlation_DEG.tiff",
+filename = "Venn_Correlation_DEG.png",
 	col = "transparent",
 	fill = 2:3,
 	alpha = 0.50,
@@ -409,20 +541,14 @@ filename = "Venn_Correlation_DEG.tiff",
 	margin = 0.1
 	);
 
-### There are 268 overlapping genes between DEG dataset and correlation dataset
+knitr::include_graphics("Venn_Correlation_DEG.png")
+
 ```
 
-```{r}
+## GO and KEGG Analysis
 
-## GO and KEGG analysis
-
-library(DOSE)
-library(org.Hs.eg.db)
-library(topGO)
-library(clusterProfiler)
-library(pathview)
-
-
+```{r go_kegg_prep, eval=T, echo=F}
+# GO and KEGG analysis
 x <- overlapping.gene
 test = bitr(x, 
 fromType="SYMBOL", 
@@ -446,29 +572,36 @@ ego_ALL <- enrichGO(gene = test$ENTREZID,
                 qvalueCutoff = 1,
 				readable = TRUE)
 head(ego_ALL,2)
+```
 
-# GO-MF
+### Gene Ontology Molecular Function 
+
+```{r go_mf, eval=T, echo=F, fig.height =7 , fig.width = 10, fig.align = "center"}
 ego_MF <- enrichGO(gene = test$ENTREZID, universe = names(geneList),OrgDb = org.Hs.eg.db,ont = "MF", pAdjustMethod = "BH",pvalueCutoff = 1,qvalueCutoff = 1,readable = FALSE)
 ego_MF1 <- setReadable(ego_MF, OrgDb = org.Hs.eg.db)
 
 barplot(ego_MF, showCategory=20,title="EnrichmentGO_MF")
+```
 
-
-# GO-BP
+### Gene Ontology Biology Process
+```{r go_bp, eval=T, echo=F, fig.height =7 , fig.width = 10, fig.align = "center"}
 ego_BP <- enrichGO(gene = test$ENTREZID, universe = names(geneList),OrgDb = org.Hs.eg.db,ont = "BP", pAdjustMethod = "BH",pvalueCutoff = 1,qvalueCutoff = 1,readable = FALSE)
 ego_BP1 <- setReadable(ego_BP, OrgDb = org.Hs.eg.db)
 
 barplot(ego_BP, showCategory=20,title="EnrichmentGO_BP")
+```
 
-
-# GO-CC
+### Gene Ontology Cellular Component
+```{r go_cc, eval=T, echo=F, fig.height =7 , fig.width = 10, fig.align = "center"}
 ego_CC <- enrichGO(gene = test$ENTREZID, universe = names(geneList),OrgDb = org.Hs.eg.db,ont = "CC", pAdjustMethod = "BH",pvalueCutoff = 1,qvalueCutoff = 1,readable = FALSE)
 ego_CC1 <- setReadable(ego_CC, OrgDb = org.Hs.eg.db)
 
 barplot(ego_CC, showCategory=20,title="EnrichmentGO_CC")
+```
 
+### KEGG Pathway 
+```{r go_kegg, eval=T, echo=F, fig.height =7 , fig.width = 10, fig.align = "center"}
 
-# KEGG Analysis
 kk <- enrichKEGG(gene = test$ENTREZID,
                  organism = 'hsa', 
                  pvalueCutoff = 1)
@@ -485,16 +618,13 @@ species = "hsa",
 
 limit = list(gene=max(abs(geneList)), cpd=1))
 ```
-
-```{r}
-
 ## Correlation Results
 
-Heatmap of a selected gene potentially effect T cell dysfunction in pancreatic patients from TCGA pancreatic cohort, exhibiting high (75th percentile) and low(25th percentile) TNFRSF1B expression
+### Heatmap
 
-# Subset T cell dysfunction gene. Data was from above overlapping analysis. Used TNFRSF1B as example
 Biomarkers: CD8A, HAVCR2, LAG3, PDCD1, EOMES, TBX21,CTLA4,
-Candidate gene: TNFRSF1B 
+selected gene: TNFRSF1B
+```{r heatmap, eval=T, echo=F}
 
 selected.gene <- c("CD8A", "HAVCR2", "LAG3", "PDCD1", "EOMES", "TBX21", "CTLA4", "ENTPD1", "CD244", "PRDM1", "TOX", "NR4A1","TNFRSF1B")
 data.extract <- data.clean[data.clean$Symbol %in% selected.gene, ]
@@ -503,33 +633,31 @@ data.extract <- data.extract[, -1]
 data.extract.t <- data.frame(t(data.extract))
 sample.name <- row.names(data.extract.t)
 
-# exhibiting high (75th percentile) TNFRSF1B expression
+
 TNFRSF1B.hi <- data.extract.t[data.extract.t$TNFRSF1B >= quantile(data.extract.t$TNFRSF1B, 0.75), ]
 TNFRSF1B.hi.name <- sprintf("TNFRSF1B_High%d", 1:46)
 row.names(TNFRSF1B.hi) <- TNFRSF1B.hi.name
 TNFRSF1B.hi.t <- data.frame(t(TNFRSF1B.hi))
 
-# exhibiting low (25th percentile) TNFRSF1B expression
 TNFRSF1B.low <- data.extract.t[data.extract.t$TNFRSF1B <= quantile(data.extract.t$TNFRSF1B, 0.25), ]
 TNFRSF1B.low.name <- sprintf("TNFRSF1B_Low%d", 1:46)
 row.names(TNFRSF1B.low) <- TNFRSF1B.low.name
 TNFRSF1B.low.t <- data.frame(t(TNFRSF1B.low))
 
-# merge datasets
+
 TNFRSF1B.hi.low.merge <- merge(TNFRSF1B.hi.t, TNFRSF1B.low.t, by=0, all=TRUE)
 row.names(TNFRSF1B.hi.low.merge) <- TNFRSF1B.hi.low.merge$Row.names
 TNFRSF1B.hi.low.merge <- TNFRSF1B.hi.low.merge[, -1]
 datawithoutTNFRSF1B <- TNFRSF1B.hi.low.merge[-12, ]
 
+
 # Heatmap 
 library(pheatmap)
 library(RColorBrewer)
-library(gplots)
+library(ggplot2)
 
-# use TNFRSF1B as example 
-
-mymat <- datawithoutTNFRSF1B 
-colnames(mymat) <- c(rep("High", 46), rep("Low", 46))
+mymat <- datawithoutTNFRSF1B
+colnames(mymat) <- c(rep("H", 46), rep("L", 46))
 
 mat_breaks <- seq(min(mymat), max(mymat), length.out = 10)
 
@@ -538,7 +666,8 @@ pheatmap(
   color             = viridis(length(mat_breaks) - 1),
   breaks            = mat_breaks,
   border_color      = NA,
-  show_colnames     = FALSE,
+  fontsize_col      = 5,
+  show_colnames     = TRUE,
   show_rownames     = TRUE,
   cluster_cols      = FALSE,
   drop_levels       = TRUE,
@@ -548,32 +677,32 @@ pheatmap(
 
 ```
 
-```{r}
+### Scatter plot
+
+```{r scatter_plot, eval=T, echo=F, fig.align = "center"}
 # Scatter plot
-
-# used TNFRSF1B and PDCD1 as example
-
+ # Use PDCD1 as example
 library(tidyverse)
 library(dplyr)
-
-data.extract.scatter <- data.clean[data.clean$Symbol %in% p.e.overlapping_0.5, ]
+data.extract.scatter <- data.clean[data.clean$Symbol %in% selected.gene, ]
 row.names(data.extract.scatter) <- data.extract.scatter$Symbol
 data.extract.scatter <- data.extract.scatter[, -1]
 data.extract.scatter.t <- data.frame(t(data.extract.scatter))
 sample.name <- row.names(data.extract.scatter.t)
-data.scatter.tnfrsf1b.pdcd1 <- data.extract.scatter.t %>% dplyr::select(TNFRSF1B, PDCD1) # TNFRSF1B, PDCD1 would changed to any other gene
+data.scatter.tnfrsf1b.hacvr2 <- data.extract.scatter.t %>% dplyr::select(TNFRSF1B, CTLA4)
 
-sp <- ggscatter(data.scatter.tnfrsf1b.pdcd1, x = "PDCD1", y = "TNFRSF1B",
+sp <- ggscatter(data.scatter.tnfrsf1b.hacvr2, x = "CTLA4", y = "TNFRSF1B",
    add = "reg.line",  # Add regressin line
    add.params = list(color = "blue", fill = "lightgray"), 
    conf.int = TRUE # Add confidence interval
    )
 # Add correlation coefficient
 sp + stat_cor(method = "spearman", label.x = 0, label.y = 8)
-
 ```
 
-```{r}
+## Survival analysis
+
+```{r survival_analysis, eval=T, echo=F, fig.align = "center"}
 ## Survival analysis
 
 # Load transformed RSEM normalized count
@@ -591,7 +720,7 @@ data.survival.1$OS.time <- round((data.survival.1$OS.time)/30)
 
 # Extract T cell dysfunction genes. Data comes from above overlapping analysis
 data.extract.r <- data.rsem
-data.extract.r <- data.rsem[data.rsem$sample %in% p.overlapping_0.5, ]
+data.extract.r <- data.rsem[data.rsem$sample %in% p.e.overlapping_0.5, ]
 row.names(data.extract.r) <- data.extract.r$sample
 data.extract.r <- data.extract.r[, -1]
 data.extract.r.t <- data.frame(t(data.extract.r))
@@ -604,22 +733,22 @@ data.survival.1$sample <- substr(data.survival.1$sample, 1,15)
 data.combine.r <- inner_join(data.survival.1,data.extract.r.t,by = "sample")
 dim(data.combine.r)
 
+
+library(tidyverse)
+# survival analysis
+
 # Kaplan–Meier curves were constructed by dividing specimens at the one standard deviation above or below average expression of each selected  gene
 
-# use gene "TNFRSF1B" as an example
-
-Data.t.r <- scale(data.combine.r$TNFRSF1B,center = TRUE, scale = TRUE) # z score scaling
+Data.t.r <- scale(data.combine.r$PDCD1,center = TRUE, scale = TRUE) # z score scaling
 test.data.r <- data.frame(data.combine.r[,1:3], Data.t.r)
-colnames(test.data.r) <- c('sample', 'OS', 'OS.time', 'TNFRSF1B')
-test.data.r$TNFRSF1B <- ifelse(test.data.r$TNFRSF1B> 1, 'High','Low') # one standard deviation above average expression was defined as "High"
+colnames(test.data.r) <- c('sample', 'OS', 'OS.time', 'PDCD1')
+test.data.r$PDCD1 <- ifelse(test.data.r$PDCD1> 1, 'High','Low') # one standard deviation above average expression was defined as "High"
 
 library(survival)
 library(survminer)
-res.cox <- coxph(Surv(OS.time, OS) ~ TNFRSF1B, data = text.data)
-pvalue <- summary(res.cox)$logtest["pvalue"]
 
 
-ggsurvplot(survfit(Surv(OS.time, OS) ~ TNFRSF1B,
+ggsurvplot(survfit(Surv(OS.time, OS) ~ PDCD1,
                    data = test.data.r),
            data = test.data.r,
            pval = TRUE,
@@ -630,8 +759,3 @@ ggsurvplot(survfit(Surv(OS.time, OS) ~ TNFRSF1B,
 
 
 ```
-
-### Conclusion
-
-In summary, I explored the genomic and phenotypic pancreatic tumor datasets to identify 268 T cell dysfunction related genes. Most of genes were highly representative in other published T cell dysfuntion models, providing evidence that T cell biomarker-driven approach to identify correlation genes was available. Gene Ontology and Pathway analysis showed most of T cell dysfunction related genes were enriched in T cell activation, differentiation and proliferation module, which were consistant with our current knowledge. That aslo suggested when we knocked out T cell dysfunction genes to improve the T cell persistance, T cell initially growth might be impaired at the same time. More further validations need to be implemented by dry lab. Overall, this biomarker-driven approach had the ability to indentify potential biomarker related genes as well as might guide translational research to improve the CAR T cell performance. 
-
