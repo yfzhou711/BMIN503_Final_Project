@@ -1,4 +1,4 @@
-# Signatures of T cell dysfunction
+# Predict T cell dysfunction genes from TCGA Pancreatic Cancer Cohort
 
 Author: Yufan Zhou
 
