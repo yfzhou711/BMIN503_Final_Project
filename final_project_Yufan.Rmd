@@ -495,7 +495,7 @@ result.selected.fdr_0.5 <- top.table[which(top.table$adj.P.Val< 0.05), ]
 
 ```
 Low survival correlated gene log(FC)<-0 and FDR <0.05, top 10 genes:
-```{r deg_anno, eval=F, echo=F}
+```{r deg_anno, eval=T, echo=F}
 
 # Low survival correlated gene log(FC)<-0 and FDR <0.05
 
