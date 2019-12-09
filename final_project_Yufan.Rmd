@@ -13,7 +13,7 @@ editor_options:
 
 ***
 ### Overview
-Adoptive cell therapy with chimeric antigen receptor expressing T (CAR T) cells has shown promising therapeutic efficacy against leukemia and lymphoma. However, CAR T cells in solid tumors fail to be as effective as in liquid tumors since they enter into a hyporesponsive (exhausted or dysfunctional) state that is induced by chronic antigen stimulation in cancer. To determine what kind of genes contribute to T cell exhaustion/ dysfunction from clinical patients sample would be meaningful to guide next-generation CAR T cell production. I identitified over two hundreds potential signatures of T cell dysfunction from pancreatic tumor cohort by testing how the expression of each gene in tumor interact with the classiscal T cell specific dysfunction biomarkers. These potential T cell dysfunction genes were highly correlated with T cell activation and was correlated with poor survival rate. 
+Adoptive cell therapy with chimeric antigen receptor expressing T (CAR T) cells has shown promising therapeutic efficacy against leukemia and lymphoma. However, CAR T cells in solid tumors fail to be as effective as in liquid tumors since they enter into a hyporesponsive (exhausted or dysfunctional) state that is induced by chronic antigen stimulation in cancer. To determine what kind of genes contribute to T cell exhaustion/ dysfunction from clinical patients sample would be meaningful to guide next-generation CAR T cell production. I identitified around two hundreds potential signatures of T cell dysfunction from pancreatic tumor cohort by testing how the expression of each gene in tumor interacts with the classiscal T cell specific dysfunction biomarkers. These potential T cell dysfunction genes were highly correlated with T cell activation and was correlated with poor survival rate. 
 
 
 ### Introduction 
@@ -750,7 +750,11 @@ Kaplan–Meier curves were constructed by dividing specimens at the one standard
 Data.t.r <- scale(data.combine.r$TNFRSF1B,center = TRUE, scale = TRUE) # z score scaling
 test.data.r <- data.frame(data.combine.r[,1:3], Data.t.r)
 colnames(test.data.r) <- c('sample', 'OS', 'OS.time', 'TNFRSF1B')
-test.data.r$TNFRSF1B <- ifelse(test.data.r$TNFRSF1B> 1, 'High','Low') # one standard deviation above average expression was defined as "High"
+highExpr <-1.0
+lowEXPR <- -1.0
+test.data.r$TNFRSF1B <- ifelse(test.data.r$TNFRSF1B >= highExpr, 'High',ifelse(test.data.r$TNFRSF1B <=lowEXPR, 'Low', 'Mid'))  # one standard deviation above average expression was defined as "High"
+
+test.data.r$TNFRSF1B <- factor(test.data.r$TNFRSF1B,levels = c('Low', 'Mid', 'High'))
 
 library(survival)
 library(survminer)
@@ -767,3 +771,7 @@ ggsurvplot(survfit(Surv(OS.time, OS) ~ TNFRSF1B,
 
 
 ```
+
+## Summary
+
+I identitified around two hundreds potential signatures of T cell dysfunction from pancreatic tumor cohort by testing how the expression of each gene in tumor interacts with the classiscal T cell specific dysfunction biomarkers. These potential T cell dysfunction genes were highly correlated with T cell activation and was correlated with poor survival rate. It is possible that overlapping intergradted correlation analysis could be applied to find biomarker related candidate signature genes. This workflow could be implemented in other TCGA cancer type cohorts to indentify candidate genes.
