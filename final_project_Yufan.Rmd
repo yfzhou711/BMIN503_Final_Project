@@ -359,7 +359,7 @@ venn.plot <- venn.diagram(
 		EOMES = EOMES,
 		TBX21 =TBX21
 		),
-filename = "Venn_Tcell_Dysfunction_5genes.png",
+filename = "Venn_Tcell_Dysfunction_5genes_.png",
 	col = "transparent",
 	fill = 1:5,
 	alpha = 0.50,
@@ -381,7 +381,7 @@ knitr::include_graphics("Venn_Tcell_Dysfunction_5genes.png")
 
 Samples were ranked by overall survival time (os.time), and categorized into high survival group (75% percentile) and low survival group (25% percentile). 
 
-Simplify samples name to "H1,H2,..H45" and "l1, l2,..l44"
+Simplify samples name to "H1,H2,..H45" and "L1, L2,..L44"
 
 ```{r deg_analysis_data_prep, eval=T, echo=F}
 
@@ -528,7 +528,7 @@ venn.plot2 <- venn.diagram(
 		correlation_dataset= correlation_dataset,
 		DEG_dataset = DEG_dataset 
 		),
-filename = "Venn_Correlation_DEG.png",
+filename = "Venn_Correlation_DEG_.png",
 	col = "transparent",
 	fill = 2:3,
 	alpha = 0.50,
