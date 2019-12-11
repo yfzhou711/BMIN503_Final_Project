@@ -179,7 +179,7 @@ summary {
 
 <h1 class="title toc-ignore">Predict T cell dysfunction genes from TCGA Pancreatic Cancer Cohort</h1>
 <h4 class="author">Yufan Zhou</h4>
-<h4 class="date">09 December, 2019</h4>
+<h4 class="date">11 December, 2019</h4>
 
 </div>
 
@@ -216,6 +216,7 @@ summary {
 <li><a href="#result">Result</a></li>
 </ul></li>
 <li><a href="#summary">Summary</a></li>
+<li><a href="#limitation">Limitation</a></li>
 </ul>
 </div>
 
@@ -234,25 +235,51 @@ summary {
 <ol style="list-style-type: decimal">
 <li>Correlation analysis</li>
 </ol>
-<p>TCGA genomic data were downloaded from the UCSC cancer genome browser project. Gene expression was measured experimentally using the Illumina HiSeq 2000 RNA Sequencing platform and log2(x + 1) transformed. Spearman’s rank correlation test will be used to assess the strength of the relationship between each classical T cell biomarkers with rest of 50,000 genes. The strength of a correlation was measured by the correlation coefficient r. Correlation greater than 0.5 was used as criteria to select candidate gene. Biomarkers correlation gene pools were performed overlapping analysis.</p>
+<p>TCGA genomic data were downloaded from the UCSC cancer genome browser project. Gene expression was measured experimentally using the Illumina HiSeq 2000 RNA Sequencing platform and log2(x + 1) transformed. Spearman’s rank correlation test will be used to assess the strength of the relationship between each classical T cell biomarkers with rest of 50,000 genes. The strength of a correlation was measured by the correlation coefficient r. Correlation greater than 0.5 was used as criteria to select candidate gene. Biomarkers correlation gene sets were performed overlapping analysis.</p>
 <ol start="2" style="list-style-type: decimal">
 <li>Survival analysis</li>
 </ol>
-<p>Kaplan–Meier curves were constructed by dividing specimens at the one standard deviation above or below average expression of each selected gene. Overall survival (OS) data were available for all 222 patients</p>
+<p>Kaplan–Meier curves were constructed by dividing specimens at the one standard deviation above or below average expression of each selected gene. Overall survival (OS) data were available for all 222 patients.</p>
 <ol start="3" style="list-style-type: decimal">
 <li>Differential gene expression</li>
 </ol>
 <p>Differential gene expression was performed with Limma. Limma-voom was used to identify transcripts that were significantly differntially expressed between experimental groups using adjusted P value of &lt;0.05.</p>
+<ol start="4" style="list-style-type: decimal">
+<li>GO and KEGG analysis</li>
+</ol>
+<p>Gene ontology (<a href="http://www.geneontology.org/" class="uri">http://www.geneontology.org/</a>) provides a controlled vocabulary for describing biological processes (BP ontology), molecular functions (MF ontology) and cellular components (CC ontology). KEGG mapping is the process to map genes to molecular interaction/reaction/relation networks.</p>
 <hr />
 <p>This report shows the process of discovering potential T cell dysfunction genes from TCGA cohort, including:</p>
 <ul>
 <li>Data preprocess</li>
 <li>Correlation analysis</li>
 <li>Differential gene expression analysis</li>
-<li>Overlapping analysis</li>
+<li>GO and KEGG Analysis</li>
 <li>Survival analysis</li>
 </ul>
 <p>Load the necessary libraries. Load affy and dplyr packages later since they will mask other functions.</p>
+<pre class="r"><code>library(knitr)
+library(pander)
+library(biomaRt)
+library(curl)
+library(VennDiagram)
+library(stringr)
+library(edgeR)
+library(RColorBrewer)
+library(biomaRt)
+library(DOSE)
+library(org.Hs.eg.db)
+library(topGO)
+library(clusterProfiler)
+library(pathview)
+library(curl)
+library(pheatmap)
+library(RColorBrewer)
+library(ggplot2)
+library(tidyverse)
+library(survival)
+library(survminer)
+library(viridis)</code></pre>
 </div>
 <div id="data-preprocess" class="section level2">
 <h2>Data Preprocess</h2>
@@ -262,11 +289,9 @@ summary {
 <li>Transformed RSEM normalized count (n=183)</li>
 <li>Survival data (n=222)</li>
 </ul>
-<p>All data were download from: <a href="https://xenabrowser.net/datapages/" class="uri">https://xenabrowser.net/datapages/</a></p>
+<p>Dataset were downloaded from GDC TCGA Pancreatic Cancer cohort: <a href="https://xenabrowser.net/datapages/" class="uri">https://xenabrowser.net/datapages/</a></p>
 <p><strong>Biomarkers:</strong></p>
-<ul>
-<li>T cell exhaustion biomarkers: CD8A, HAVCR2, LAG3, PDCD1, EOMES, TBX21, CTLA4</li>
-</ul>
+<p>T cell dysfunction biomarkers: <strong>CD8A, HAVCR2, LAG3, PDCD1, EOMES, TBX21,CTLA4</strong> have been demonstrated in pre-clinical model to predict T cell dysfunction</p>
 </div>
 <div id="correlation-analysis" class="section level2">
 <h2>Correlation Analysis</h2>
@@ -960,7 +985,18 @@ write.csv(result_cd8a, file = &quot;./correlation_result/result_cd8a.csv&quot;)<
 </div>
 <div id="summary" class="section level2">
 <h2>Summary</h2>
-<p>I identitified around two hundreds potential signatures of T cell dysfunction from pancreatic tumor cohort by testing how the expression of each gene in tumor interacts with the classiscal T cell specific dysfunction biomarkers. These potential T cell dysfunction genes were highly correlated with T cell activation and was correlated with poor survival rate. It is possible that overlapping intergradted correlation analysis could be applied to find biomarker related candidate signature genes. This workflow could be implemented in other TCGA cancer type cohorts to indentify candidate genes.</p>
+<ul>
+<li><p>Identified around two hundreds potential signatures of T cell dysfunction from pancreatic tumor cohort by testing how the expression of each gene interacted with the classical T cell specific dysfunction biomarkers.</p></li>
+<li><p>These potential T cell dysfunction genes were highly correlated with T cell function and was correlated with poor survival rate.</p></li>
+<li><p>This workflow could be implemented into other TCGA cancer type cohorts to identify interesting genes.</p></li>
+</ul>
+</div>
+<div id="limitation" class="section level2">
+<h2>Limitation</h2>
+<ul>
+<li><p>One limitation of this study is I only focused on TCGA tumor dataset, by using CAR T cell clinical trials dataset to further evaluate correlation results were necessary.</p></li>
+<li><p>Another limitation is that I focused primarily on gene expression biomarkers. However, other data types can also predict T cell dysfunction, like epigenetic and proteomic datasets.</p></li>
+</ul>
 </div>
 
 

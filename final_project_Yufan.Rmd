@@ -25,15 +25,20 @@ Gene expression biomarkers in T cells, such as PDCD1, HACVR2, LAG3, TOX, EOMES, 
 
 1. Correlation analysis
 
-TCGA genomic data were downloaded from the UCSC cancer genome browser project. Gene expression was measured experimentally using the Illumina HiSeq 2000 RNA Sequencing platform and log2(x + 1) transformed. Spearman’s rank correlation test will be used to assess the strength of the relationship between each classical T cell biomarkers with rest of 50,000 genes. The strength of a correlation was measured by the correlation coefficient r. Correlation greater than 0.5 was used as criteria to select candidate gene. Biomarkers correlation gene pools were performed overlapping analysis. 
+TCGA genomic data were downloaded from the UCSC cancer genome browser project. Gene expression was measured experimentally using the Illumina HiSeq 2000 RNA Sequencing platform and log2(x + 1) transformed. Spearman’s rank correlation test will be used to assess the strength of the relationship between each classical T cell biomarkers with rest of 50,000 genes. The strength of a correlation was measured by the correlation coefficient r. Correlation greater than 0.5 was used as criteria to select candidate gene. Biomarkers correlation gene sets were performed overlapping analysis. 
 
 2. Survival analysis
 
-Kaplan–Meier curves were constructed by dividing specimens at the one standard deviation above or below average expression of each selected  gene. Overall survival (OS) data were available for all 222 patients
+Kaplan–Meier curves were constructed by dividing specimens at the one standard deviation above or below average expression of each selected  gene. Overall survival (OS) data were available for all 222 patients.
 
 3. Differential gene expression
 
 Differential gene expression was performed with Limma. Limma-voom was used to identify transcripts that were significantly differntially expressed between experimental groups using adjusted P value of <0.05.
+
+4. GO and KEGG analysis
+
+Gene ontology (http://www.geneontology.org/) provides a controlled vocabulary for describing biological processes (BP ontology), molecular functions (MF ontology) and cellular components (CC ontology). KEGG mapping is the process to map genes to molecular interaction/reaction/relation networks. 
+
 
 ***
 
@@ -42,12 +47,12 @@ This report shows the process of discovering potential T cell dysfunction genes 
 * Data preprocess
 * Correlation analysis
 * Differential gene expression analysis
-* Overlapping analysis
+* GO and KEGG Analysis
 * Survival analysis
 
 Load the necessary libraries. Load affy and dplyr packages later since they will mask other functions.
 
-```{r lib, eval=T, echo=F, message=F, warning=F}
+```{r lib, eval=T, echoT, message=F, warning=F}
 library(knitr)
 library(pander)
 library(biomaRt)
@@ -81,12 +86,13 @@ library(viridis)
 * Transformed RSEM normalized count (n=183)
 * Survival data (n=222) 
 
-All data were download from: https://xenabrowser.net/datapages/
+Dataset were downloaded from GDC TCGA Pancreatic Cancer cohort: https://xenabrowser.net/datapages/
 
 
 **Biomarkers:**
 
-* T cell exhaustion biomarkers: CD8A, HAVCR2, LAG3, PDCD1, EOMES, TBX21, CTLA4
+T cell dysfunction biomarkers: **CD8A, HAVCR2, LAG3, PDCD1, EOMES, TBX21,CTLA4** have been demonstrated in pre-clinical model to predict T cell dysfunction
+
 
 
 ## Correlation Analysis
@@ -774,4 +780,16 @@ ggsurvplot(survfit(Surv(OS.time, OS) ~ TNFRSF1B,
 
 ## Summary
 
-I identitified around two hundreds potential signatures of T cell dysfunction from pancreatic tumor cohort by testing how the expression of each gene in tumor interacts with the classiscal T cell specific dysfunction biomarkers. These potential T cell dysfunction genes were highly correlated with T cell activation and was correlated with poor survival rate. It is possible that overlapping intergradted correlation analysis could be applied to find biomarker related candidate signature genes. This workflow could be implemented in other TCGA cancer type cohorts to indentify candidate genes.
+* Identified around two hundreds potential signatures of T cell dysfunction from pancreatic tumor cohort by testing how the expression of each gene interacted with the classical T cell specific dysfunction biomarkers. 
+
+* These potential T cell dysfunction genes were highly correlated with T cell function and was correlated with poor survival rate.
+
+* This workflow could be implemented into other TCGA cancer type cohorts to identify interesting genes.
+
+## Limitation
+
+* One limitation of this study is I only focused on TCGA tumor dataset, by using CAR T cell clinical trials dataset to further evaluate correlation results were necessary.
+
+* Another limitation is that I focused primarily on gene expression biomarkers. However, other data types can also predict T cell dysfunction, like epigenetic and proteomic datasets.
+
+
