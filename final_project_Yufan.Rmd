@@ -52,7 +52,7 @@ This report shows the process of discovering potential T cell dysfunction genes 
 
 Load the necessary libraries. Load affy and dplyr packages later since they will mask other functions.
 
-```{r lib, eval=T, echoT, message=F, warning=F}
+```{r lib, eval=T, echo=T, message=F, warning=F}
 library(knitr)
 library(pander)
 library(biomaRt)
@@ -83,10 +83,18 @@ library(viridis)
 **Datasets:**
 
 * Transformed FPKM normalized count (n=182) 
+
 * Transformed RSEM normalized count (n=183)
+
 * Survival data (n=222) 
 
+* Phenotype data (n=222)
+
 Dataset were downloaded from GDC TCGA Pancreatic Cancer cohort: https://xenabrowser.net/datapages/
+
+All gene expression data was log2(x+1) transformed
+
+
 
 
 **Biomarkers:**
@@ -141,7 +149,7 @@ pandoc.table(data.clean[1:6, 1:10], split.tables=Inf, caption="Parts of annotate
 
 ### Correlation Analysis
 
-Spearman’s rank correlation test will be used to assess the strength of the relationship between each classical T cell biomarkers with rest of 50,000 genes.
+Spearman’s rank correlation test will be used to assess the strength of the relationship between each classical T cell biomarkers with rest of 60,000 genes.
 
 **Biomarker CD8A, HAVCR2, LAG3, PDCD1, EOMES, TBX21, CTLA4 will be tested repectively.**
 
@@ -301,7 +309,7 @@ write.csv(result_cd8a, file = "./correlation_result/result_cd8a.csv")
 
 The strength of a correlation was measured by the correlation coefficient r. Correlation greater than 0.5 was used as cutoff. Seven biomarkers correlation genesets were used for overlapping analysis
 
-**345 overlapping genes were selected out**
+**345 overlapping genes were selected out**,see the below dataframe
 
 ```{r overlapping_correlation, eval=T, echo=F}
 
@@ -347,7 +355,7 @@ p.e.overlapping_0.5 <- Reduce(intersect, list(gene_list_havcr2_0.5,gene_list_lag
 p.e.overlapping_0.5
 ```
 
-**Venn diagram for top 5 biomarker genes**
+**Venn diagram showed the number of overlapping genes from five biomarkers correlated gene sets **
 
 ```{r venn_overlap_corre, eval=T, echo=F,out.width="60%"}
 
@@ -471,7 +479,7 @@ dim(d)
 **1. plotMDS**
 
 **MDS plot showed good separation between high survival group vs. low survival group**
-```{r plotmds, eval=T, echo=F}
+```{r plotmds, eval=T, echo=T}
 # plotMDS 
 plotMDS(d, col = as.numeric(group))
 
@@ -512,7 +520,7 @@ result.anno.low[1:10,]
 
 ## Overlapping between correlation analysis and DEG analysis
 
-Venn diagram showed 196 overlapping genes between DEG dataset and correlation dataset
+Venn diagram showed 196 overlapping genes between DEG dataset and correlation dataset. 
 
 ```{r venn_correl_deg, eval=T, echo=F,out.width="60%"}
 
@@ -553,6 +561,8 @@ knitr::include_graphics("Venn_Correlation_DEG.png")
 
 ## GO and KEGG Analysis
 
+196 overlapped genes from differential gene expression analysis and correlation anlysis were implemented by GO and KEGG analysis. Most of genes were classfied into T cell function, which gave an evidence that my data process could target to T cell level. 
+
 ```{r go_kegg_prep, eval=T, echo=F}
 # GO and KEGG analysis
 x <- overlapping.gene
@@ -582,6 +592,7 @@ head(ego_ALL,2)
 
 ### Gene Ontology Molecular Function 
 
+
 ```{r go_mf, eval=T, echo=F, fig.height =7 , fig.width = 10, fig.align = "center"}
 ego_MF <- enrichGO(gene = test$ENTREZID, universe = names(geneList),OrgDb = org.Hs.eg.db,ont = "MF", pAdjustMethod = "BH",pvalueCutoff = 1,qvalueCutoff = 1,readable = FALSE)
 ego_MF1 <- setReadable(ego_MF, OrgDb = org.Hs.eg.db)
@@ -590,6 +601,7 @@ barplot(ego_MF, showCategory=20,title="EnrichmentGO_MF")
 ```
 
 ### Gene Ontology Biology Process
+
 ```{r go_bp, eval=T, echo=F, fig.height =7 , fig.width = 10, fig.align = "center"}
 ego_BP <- enrichGO(gene = test$ENTREZID, universe = names(geneList),OrgDb = org.Hs.eg.db,ont = "BP", pAdjustMethod = "BH",pvalueCutoff = 1,qvalueCutoff = 1,readable = FALSE)
 ego_BP1 <- setReadable(ego_BP, OrgDb = org.Hs.eg.db)
@@ -598,6 +610,7 @@ barplot(ego_BP, showCategory=20,title="EnrichmentGO_BP")
 ```
 
 ### Gene Ontology Cellular Component
+
 ```{r go_cc, eval=T, echo=F, fig.height =7 , fig.width = 10, fig.align = "center"}
 ego_CC <- enrichGO(gene = test$ENTREZID, universe = names(geneList),OrgDb = org.Hs.eg.db,ont = "CC", pAdjustMethod = "BH",pvalueCutoff = 1,qvalueCutoff = 1,readable = FALSE)
 ego_CC1 <- setReadable(ego_CC, OrgDb = org.Hs.eg.db)
@@ -605,7 +618,8 @@ ego_CC1 <- setReadable(ego_CC, OrgDb = org.Hs.eg.db)
 barplot(ego_CC, showCategory=20,title="EnrichmentGO_CC")
 ```
 
-### KEGG Pathway 
+### KEGG Pathway
+
 ```{r go_kegg, eval=T, echo=F, fig.height =7 , fig.width = 10, fig.align = "center"}
 
 kk <- enrichKEGG(gene = test$ENTREZID,
@@ -630,7 +644,9 @@ limit = list(gene=max(abs(geneList)), cpd=1))
 
 **Biomarkers: CD8A, HAVCR2, LAG3, PDCD1, EOMES, TBX21,CTLA4**
 
-**Example gene: TNFRSF1B**
+Example gene: **TNFRSF1B** was used to show the correlation result
+
+
 ```{r heatmap, eval=T, echo=F}
 
 selected.gene <- c("CD8A", "HAVCR2", "LAG3", "PDCD1", "EOMES", "TBX21", "CTLA4", "ENTPD1", "CD244", "PRDM1", "TOX", "NR4A1","TNFRSF1B")
@@ -684,9 +700,12 @@ pheatmap(
 
 ```
 
+Heatmap of a selected gene potentially effect T cell dysfunction in pancreatic patients from TCGA pancreatic cohort, exhibiting high (75th percentile) and low(25th percentile) TNFRSF1B expression
+
+
 ### Scatter plot
 
-**Example gene: TNFRSF1B**
+Scatter plot showed the positive correlation between TNFRSF1B with CTLA4.
 ```{r scatter_plot, eval=T, echo=F, fig.align = "center"}
 # Scatter plot
  # Use PDCD1 as example
@@ -749,7 +768,7 @@ library(tidyverse)
 
 Kaplan–Meier curves were constructed by dividing specimens at the one standard deviation above or below average expression of each selected gene. 
 
-**Example gene: TNFRSF1B**
+TNFRSF1B was positively correlated with poor survival rate
 
 ```{r survival_analysis, eval=T, echo=F, fig.align = "center"}
 
