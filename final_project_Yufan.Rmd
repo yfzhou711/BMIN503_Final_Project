@@ -50,7 +50,7 @@ This report shows the process of discovering potential T cell dysfunction genes 
 * GO and KEGG Analysis
 * Survival analysis
 
-Load the necessary libraries. Load affy and dplyr packages later since they will mask other functions.
+Load the necessary libraries.
 
 ```{r lib, eval=T, echo=T, message=F, warning=F}
 library(knitr)
